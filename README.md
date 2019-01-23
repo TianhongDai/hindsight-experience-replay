@@ -12,8 +12,8 @@ This is a pytorch implementation of [Hindsight Experience Replay](https://arxiv.
 - mpi4py
 
 ## TODO List
-- [ ] support GPU acceleration.
-- [ ] add multi-env per MPI.
+- [x] support GPU acceleration - although I have added GPU support, but I still not recommend if you don't have a powerful machine.
+- [x] add multi-env per MPI.
 
 ## Instruction to run the code
 1. train the **FetchReach-v1**:

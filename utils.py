@@ -61,9 +61,9 @@ def _get_flat_grads(network):
     grads_shape = {}
     flat_grads = None
     for key_name, value in network.named_parameters():
-        grads_shape[key_name] = value.grad.data.numpy().shape
+        grads_shape[key_name] = value.grad.data.cpu().numpy().shape
         if flat_grads is None:
-            flat_grads = value.grad.data.numpy().flatten()
+            flat_grads = value.grad.data.cpu().numpy().flatten()
         else:
-            flat_grads = np.append(flat_grads, value.grad.data.numpy().flatten())
+            flat_grads = np.append(flat_grads, value.grad.data.cpu().numpy().flatten())
     return flat_grads, grads_shape

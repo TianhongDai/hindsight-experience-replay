@@ -5,11 +5,11 @@ import gym
 import numpy as np
 
 # process the inputs
-def process_inputs(o, g, o_mean, o_std, g_mean, g_std):
-    o_clip = np.clip(o, -200, 200)
-    g_clip = np.clip(g, -200, 200)
-    o_norm = np.clip((o_clip - o_mean) / (o_std), -5, 5)
-    g_norm = np.clip((g_clip - g_mean) / (g_std), -5, 5)
+def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
+    o_clip = np.clip(o, -args.clip_obs, args.clip_obs)
+    g_clip = np.clip(g, -args.clip_obs, args.clip_obs)
+    o_norm = np.clip((o_clip - o_mean) / (o_std), -args.clip_range, args.clip_range)
+    g_norm = np.clip((g_clip - g_mean) / (g_std), -args.clip_range, args.clip_range)
     inputs = np.concatenate([o_norm, g_norm])
     inputs = torch.tensor(inputs, dtype=torch.float32)
     return inputs
@@ -18,7 +18,7 @@ if __name__ == '__main__':
     args = get_args()
     # load the model param
     model_path = args.save_dir + args.env_name + '/model.pt'
-    o_mean, o_std, g_mean, g_std, model = torch.load(model_path)
+    o_mean, o_std, g_mean, g_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
     # create the environment
     env = gym.make(args.env_name)
     # get the env param
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         g = observation['desired_goal']
         for t in range(env._max_episode_steps):
             env.render()
-            inputs = process_inputs(obs, g, o_mean, o_std, g_mean, g_std)
+            inputs = process_inputs(obs, g, o_mean, o_std, g_mean, g_std, args)
             with torch.no_grad():
                 pi = actor_network(inputs)
             action = pi.detach().numpy().squeeze()

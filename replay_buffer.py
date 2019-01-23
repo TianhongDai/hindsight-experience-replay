@@ -26,14 +26,15 @@ class replay_buffer:
     # store the episode
     def store_episode(self, episode_batch):
         mb_obs, mb_ag, mb_g, mb_actions = episode_batch
+        batch_size = mb_obs.shape[0]
         with self.lock:
-            idxs = self._get_storage_idx(inc=1)
+            idxs = self._get_storage_idx(inc=batch_size)
             # store the informations
             self.buffers['obs'][idxs] = mb_obs
             self.buffers['ag'][idxs] = mb_ag
             self.buffers['g'][idxs] = mb_g
             self.buffers['actions'][idxs] = mb_actions
-            self.n_transitions_stored += self.T
+            self.n_transitions_stored += self.T * batch_size
     
     # sample the data from the replay buffer
     def sample(self, batch_size):
