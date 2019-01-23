@@ -16,6 +16,7 @@ This is a pytorch implementation of [Hindsight Experience Replay](https://arxiv.
 - [x] add multi-env per MPI.
 
 ## Instruction to run the code
+If you want to use GPU, just add the flag `--cuda`.
 1. train the **FetchReach-v1**:
 ```bash
 mpirun -np 1 python -u train.py --env-name='FetchReach-v1' --n-cycles=10 2>&1 | tee reach.log
