@@ -13,15 +13,15 @@ This is a pytorch implementation of [Hindsight Experience Replay](https://arxiv.
 - [ ] add multi-env per MPI.
 
 ## Instruction to run the code
-1. train the `FetchReach-v1`:
+1. train the **FetchReach-v1**:
 ```bash
 mpirun -np 1 python -u train.py --env-name='FetchReach-v1' --n-cycles=10 2>&1 | tee reach.log
 ```
-2. train the `FetchPush-v1`:
+2. train the **FetchPush-v1**:
 ```bash
 mpirun -np 8 python -u train.py --env-name='FetchPush-v1' 2>&1 | tee push.log
 ```
-3. train the `FetchPickAndPlace-v1`:
+3. train the **FetchPickAndPlace-v1**:
 ```bash
 mpirun -np 16 python -u train.py --env-name='FetchPickAndPlace-v1' 2>&1 | tee pick.log
 ```
@@ -37,7 +37,7 @@ Please download them from the [Google Driver](https://drive.google.com/open?id=1
 ### Training Performance
 ![Training_Curve](figures/results.png)
 ### Demo:
-**Note:** the new-version openai-gym has problem in rendering, so I use the demo of `Walker2d-v1`  
 **Tips**: when you watch the demo, you can press **TAB** to switch the camera in the mujoco.  
+
 ![Demo](figures/demo.gif)
 
