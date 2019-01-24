@@ -30,6 +30,10 @@ mpirun -np 8 python -u train.py --env-name='FetchPush-v1' 2>&1 | tee push.log
 ```bash
 mpirun -np 16 python -u train.py --env-name='FetchPickAndPlace-v1' 2>&1 | tee pick.log
 ```
+4. train the **FetchSlide-v1**:
+```bash
+mpirun -np 8 python -u train.py --env-name='FetchSlide-v1' --n-epochs=200 2>&1 | tee slide.log
+```
 
 ### Play Demo
 ```bash
