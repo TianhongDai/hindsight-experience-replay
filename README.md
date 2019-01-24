@@ -17,7 +17,7 @@ This is a pytorch implementation of [Hindsight Experience Replay](https://arxiv.
 - [x] add the plot and demo of the **FetchSlide-v1**.
 
 ## Instruction to run the code
-If you want to use GPU, just add the flag `--cuda`.
+If you want to use GPU, just add the flag `--cuda` **(Not Recommended, Better Use CPU)**.
 1. train the **FetchReach-v1**:
 ```bash
 mpirun -np 1 python -u train.py --env-name='FetchReach-v1' --n-cycles=10 2>&1 | tee reach.log
