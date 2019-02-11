@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 # sync_networks across the different cores
-def sync_netowrks(network):
+def sync_networks(network):
     """
     netowrk is the network you want to sync
 

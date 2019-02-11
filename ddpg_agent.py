@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 from mpi4py import MPI
 from models import actor, critic
-from utils import sync_netowrks, sync_grads
+from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
 from normalizer import normalizer
 from her import her_sampler
@@ -22,8 +22,8 @@ class ddpg_agent:
         self.actor_network = actor(env_params)
         self.critic_network = critic(env_params)
         # sync the networks across the cpus
-        sync_netowrks(self.actor_network)
-        sync_netowrks(self.critic_network)
+        sync_networks(self.actor_network)
+        sync_networks(self.critic_network)
         # build up the target network
         self.actor_target_network = actor(env_params)
         self.critic_target_network = critic(env_params)
