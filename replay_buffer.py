@@ -41,7 +41,7 @@ class replay_buffer:
         temp_buffers = {}
         with self.lock:
             for key in self.buffers.keys():
-                temp_buffers[key] = self.buffers[key][:self.current_size].copy()
+                temp_buffers[key] = self.buffers[key][:self.current_size]
         temp_buffers['obs_next'] = temp_buffers['obs'][:, 1:, :]
         temp_buffers['ag_next'] = temp_buffers['ag'][:, 1:, :]
         # sample transitions
