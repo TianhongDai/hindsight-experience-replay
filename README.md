@@ -8,7 +8,7 @@ This is a pytorch implementation of [Hindsight Experience Replay](https://arxiv.
 - python 3.5.2
 - openai-gym
 - mujoco-1.50.1.56
-- pytorch-1.0.0
+- pytorch-1.0.0 (**If you use pytorch-0.4.1, you may have data type errors. I will fix it later.**)
 - mpi4py
 
 ## TODO List
