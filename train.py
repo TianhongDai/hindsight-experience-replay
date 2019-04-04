@@ -27,8 +27,8 @@ def launch(args):
     env = gym.make(args.env_name)
     # set random seeds for reproduce
     env.seed(args.seed + MPI.COMM_WORLD.Get_rank())
-    random.seed(args.seed, MPI.COMM_WORLD.Get_rank())
-    np.random.seed(args.seed, MPI.COMM_WORLD.Get_rank())
+    random.seed(args.seed + MPI.COMM_WORLD.Get_rank())
+    np.random.seed(args.seed + MPI.COMM_WORLD.Get_rank())
     # get the environment parameters
     env_params = get_env_params(env)
     # create the ddpg agent to interact with the environment 
