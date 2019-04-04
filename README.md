@@ -7,7 +7,7 @@ This is a pytorch implementation of [Hindsight Experience Replay](https://arxiv.
 ## Requirements
 - python 3.5.2
 - openai-gym
-- mujoco-1.50.1.56
+- mujoco-1.50.1.56 (**Please use this version, if you use mujoco200, you may failed in the FetchSlide-v1**)
 - pytorch-1.0.0 (**If you use pytorch-0.4.1, you may have data type errors. I will fix it later.**)
 - mpi4py
 
