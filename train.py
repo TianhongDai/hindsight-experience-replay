@@ -5,6 +5,7 @@ from arguments import get_args
 from mpi4py import MPI
 from subprocess import CalledProcessError
 from ddpg_agent import ddpg_agent
+import random
 
 """
 train the agent, the MPI part code is copy from openai baselines(https://github.com/openai/baselines/blob/master/baselines/her)
@@ -24,6 +25,10 @@ def get_env_params(env):
 def launch(args):
     # create the ddpg_agent
     env = gym.make(args.env_name)
+    # set random seeds for reproduce
+    env.seed(args.seed + MPI.COMM_WORLD.Get_rank())
+    random.seed(args.seed, MPI.COMM_WORLD.Get_rank())
+    np.random.seed(args.seed, MPI.COMM_WORLD.Get_rank())
     # get the environment parameters
     env_params = get_env_params(env)
     # create the ddpg agent to interact with the environment 
