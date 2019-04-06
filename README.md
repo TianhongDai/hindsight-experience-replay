@@ -44,6 +44,7 @@ Please download them from the [Google Driver](https://drive.google.com/open?id=1
 
 ## Results
 ### Training Performance
+It was ploted by using 5 different seeds, the solid line is the median value. 
 ![Training_Curve](figures/results.png)
 ### Demo:
 **Tips**: when you watch the demo, you can press **TAB** to switch the camera in the mujoco.  
