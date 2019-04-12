@@ -6,6 +6,7 @@ from mpi4py import MPI
 from subprocess import CalledProcessError
 from ddpg_agent import ddpg_agent
 import random
+import torch
 
 """
 train the agent, the MPI part code is copy from openai baselines(https://github.com/openai/baselines/blob/master/baselines/her)
@@ -29,6 +30,9 @@ def launch(args):
     env.seed(args.seed + MPI.COMM_WORLD.Get_rank())
     random.seed(args.seed + MPI.COMM_WORLD.Get_rank())
     np.random.seed(args.seed + MPI.COMM_WORLD.Get_rank())
+    torch.manual_seed(args.seed + MPI.COMM_WORLD.Get_rank())
+    if args.cuda:
+        torch.cuda.manual_seed(args.seed + MPI.COMM_WORLD.Get_rank())
     # get the environment parameters
     env_params = get_env_params(env)
     # create the ddpg agent to interact with the environment 
