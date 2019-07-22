@@ -3,7 +3,7 @@ import gym
 import os, sys
 from arguments import get_args
 from mpi4py import MPI
-from ddpg_agent import ddpg_agent
+from rl_modules.ddpg_agent import ddpg_agent
 import random
 import torch
 
