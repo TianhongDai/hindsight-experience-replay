@@ -1,5 +1,5 @@
 import torch
-from models import actor
+from rl_modules.models import actor
 from arguments import get_args
 import gym
 import numpy as np

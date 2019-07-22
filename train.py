@@ -3,7 +3,6 @@ import gym
 import os, sys
 from arguments import get_args
 from mpi4py import MPI
-from subprocess import CalledProcessError
 from ddpg_agent import ddpg_agent
 import random
 import torch
