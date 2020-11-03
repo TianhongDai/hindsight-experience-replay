@@ -34,6 +34,7 @@ def get_args():
     parser.add_argument('--demo-length', type=int, default=20, help='the demo length')
     parser.add_argument('--cuda', action='store_true', help='if use gpu do the acceleration')
     parser.add_argument('--num-rollouts-per-mpi', type=int, default=2, help='the rollouts per mpi')
+    parser.add_argument('--server-name', type=str, default='Computer-54635.cable.rcn.com', help='the hostname of the server')
 
     args = parser.parse_args()
 
