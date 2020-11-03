@@ -36,8 +36,13 @@ mpirun -np 8 python -u train.py --env-name='FetchSlide-v1' --n-epochs=200 2>&1 |
 ```
 
 ### Play Demo
+#### Start server
 ```bash
-python demo.py --env-name=<environment name>
+python server.py
+```
+#### Run demo (server hostname is printed by server.py)
+```bash
+python demo.py --env-name=<environment name> --server-name=<server hostname>
 ```
 ### Download the Pre-trained Model
 Please download them from the [Google Driver](https://drive.google.com/open?id=1dNzIpIcL4x1im8dJcUyNO30m_lhzO9K4), then put the `saved_models` under the current folder.
