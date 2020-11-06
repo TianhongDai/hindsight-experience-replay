@@ -15,7 +15,9 @@ class Client:
         return res
 
   def _send_byte_message(self, msg):
-    self.s.send(msg)
+    msg_len = len(msg) + 4
+    msg_final = msg_len.to_bytes(4, byteorder="big") + msg
+    self.s.send(msg_final)
     return self._get_response()
 
   def _send_cmd(self, cmd):

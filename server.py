@@ -26,12 +26,15 @@ def manage_connection(conn):
     conn.send(bytes("done", 'utf-8'))
 
   while True:
-    data = conn.recv(4096*4)
+    data = conn.recv(2048)
+    data_len = int.from_bytes(data[0:4], byteorder="big")
+    while (len(data) < data_len):
+      data += conn.recv(2048)
     if len(data) >= 4:
-      cmd = data[0:4].decode('utf-8')
+      cmd = data[4:8].decode('utf-8')
       if (cmd == MAKE_ENV_CMD):
-        env_name_len = int.from_bytes(data[4:8], byteorder="big")
-        env_name = data[8:8+env_name_len].decode('utf-8')
+        env_name_len = int.from_bytes(data[8:12], byteorder="big")
+        env_name = data[12:12+env_name_len].decode('utf-8')
         print(f"Creating enviroment: {env_name}")
         env = gym.make(env_name)
         conn.send(bytes("done", 'utf-8'))
@@ -43,7 +46,7 @@ def manage_connection(conn):
         pickle_response(env._max_episode_steps)
       elif (cmd == STEP_CMD):
         # print("Enviroment step")
-        action = pickle.loads(data[4:])
+        action = pickle.loads(data[8:])
         pickle_response(env.step(action))
       elif (cmd == RENDER_CMD):
         print("Rendering")
@@ -56,11 +59,11 @@ def manage_connection(conn):
         conn.close()
         exit()
       elif (cmd == SEED_CMD):
-        env_seed = int.from_bytes(data[4:8], byteorder="big")
+        env_seed = int.from_bytes(data[8:12], byteorder="big")
         env.seed(env_seed)
         done_response()
       elif (cmd == COMPUTE_REWARD_CMD):
-        arg1, arg2, arg3 = pickle.loads(data[4:])
+        arg1, arg2, arg3 = pickle.loads(data[8:])
         pickle_response(env.compute_reward(arg1, arg2, arg3))
       else:
         print(f"Unrecognized command: {cmd}")

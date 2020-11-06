@@ -2,6 +2,8 @@ PORT = 8080
 
 CMD_LEN = 4
 
+# All of these messages sent from the client are prefaced with the total message length. 
+
 # Make new enviroment. 
 # Message: MAKE.len(env_name).env_name
 # Response: done
