@@ -1,7 +1,7 @@
 
 import pickle
 import socket
-from communication_consts import BYE_CMD, GET_ACTION_SPACE_CMD, GET_MAX_EPISODE_STEPS_CMD, MAKE_ENV_CMD, PORT, RENDER_CMD, RESET_ENV_CMD, STEP_CMD
+from communication_consts import BYE_CMD, COMPUTE_REWARD_CMD, GET_ACTION_SPACE_CMD, GET_MAX_EPISODE_STEPS_CMD, MAKE_ENV_CMD, PORT, RENDER_CMD, RESET_ENV_CMD, SEED_CMD, STEP_CMD
 
 class Client:
   def __init__(self, hostname) -> None:
@@ -53,6 +53,14 @@ class Client:
 
   def get_action_space(self):
     return self._basic_pickle_res_cmd(GET_ACTION_SPACE_CMD)
+
+  def compute_reward(self):
+    return self._basic_pickle_res_cmd(COMPUTE_REWARD_CMD)
+
+  def seed(self, seed_value):
+    msg = bytes(SEED_CMD, 'utf-8')
+    msg += seed_value.to_bytes(4, byteorder="big")
+    self._send_byte_message(msg)
 
   def close(self):
     self.s.send(bytes(BYE_CMD, 'utf-8'))

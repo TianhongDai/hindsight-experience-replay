@@ -34,3 +34,13 @@ GET_ACTION_SPACE_CMD = "ACSP"
 
 # Terminates the server. No response. 
 BYE_CMD = "BYE!"
+
+# Gets env.compute_reward
+# Message: RWRD
+# Response: pickle encoded reward value
+COMPUTE_REWARD_CMD = "RWRD"
+
+# Seed the gym
+# Message: SEED.seed_value
+# Response: done
+SEED_CMD = "SEED"

@@ -14,9 +14,9 @@ ddpg with HER (MPI-version)
 
 """
 class ddpg_agent:
-    def __init__(self, args, env, env_params):
+    def __init__(self, args, client, env_params):
         self.args = args
-        self.env = env
+        self.client = client
         self.env_params = env_params
         # create the network
         self.actor_network = actor(env_params)
@@ -40,7 +40,7 @@ class ddpg_agent:
         self.actor_optim = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
         self.critic_optim = torch.optim.Adam(self.critic_network.parameters(), lr=self.args.lr_critic)
         # her sampler
-        self.her_module = her_sampler(self.args.replay_strategy, self.args.replay_k, self.env.compute_reward)
+        self.her_module = her_sampler(self.args.replay_strategy, self.args.replay_k, self.client.compute_reward())
         # create the replay buffer
         self.buffer = replay_buffer(self.env_params, self.args.buffer_size, self.her_module.sample_her_transitions)
         # create the normalizer
@@ -68,7 +68,7 @@ class ddpg_agent:
                     # reset the rollouts
                     ep_obs, ep_ag, ep_g, ep_actions = [], [], [], []
                     # reset the environment
-                    observation = self.env.reset()
+                    observation = self.client.reset_env()
                     obs = observation['observation']
                     ag = observation['achieved_goal']
                     g = observation['desired_goal']
@@ -79,7 +79,7 @@ class ddpg_agent:
                             pi = self.actor_network(input_tensor)
                             action = self._select_actions(pi)
                         # feed the actions into the environment
-                        observation_new, _, _, info = self.env.step(action)
+                        observation_new, _, _, info = self.client.step_enviroment(action)
                         obs_new = observation_new['observation']
                         ag_new = observation_new['achieved_goal']
                         # append rollouts
@@ -237,7 +237,7 @@ class ddpg_agent:
         total_success_rate = []
         for _ in range(self.args.n_test_rollouts):
             per_success_rate = []
-            observation = self.env.reset()
+            observation = self.client.reset_env()
             obs = observation['observation']
             g = observation['desired_goal']
             for _ in range(self.env_params['max_timesteps']):
@@ -246,7 +246,7 @@ class ddpg_agent:
                     pi = self.actor_network(input_tensor)
                     # convert the actions
                     actions = pi.detach().cpu().numpy().squeeze()
-                observation_new, _, _, info = self.env.step(actions)
+                observation_new, _, _, info = self.client.step_enviroment(actions)
                 obs = observation_new['observation']
                 g = observation_new['desired_goal']
                 per_success_rate.append(info['is_success'])
