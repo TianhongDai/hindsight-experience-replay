@@ -54,8 +54,10 @@ class Client:
   def get_action_space(self):
     return self._basic_pickle_res_cmd(GET_ACTION_SPACE_CMD)
 
-  def compute_reward(self):
-    return self._basic_pickle_res_cmd(COMPUTE_REWARD_CMD)
+  def reward_func(self, ag_next, g, arg3):
+    msg = bytes(COMPUTE_REWARD_CMD, 'utf-8')
+    msg += pickle.dumps((ag_next, g, arg3))
+    return self._send_pickle_res_msg(msg)
 
   def seed(self, seed_value):
     msg = bytes(SEED_CMD, 'utf-8')

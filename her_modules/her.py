@@ -1,14 +1,14 @@
 import numpy as np
 
 class her_sampler:
-    def __init__(self, replay_strategy, replay_k, reward_func=None):
+    def __init__(self, replay_strategy, replay_k, client):
         self.replay_strategy = replay_strategy
         self.replay_k = replay_k
         if self.replay_strategy == 'future':
             self.future_p = 1 - (1. / (1 + replay_k))
         else:
             self.future_p = 0
-        self.reward_func = reward_func
+        self.client = client
 
     def sample_her_transitions(self, episode_batch, batch_size_in_transitions):
         T = episode_batch['actions'].shape[1]
@@ -27,7 +27,7 @@ class her_sampler:
         future_ag = episode_batch['ag'][episode_idxs[her_indexes], future_t]
         transitions['g'][her_indexes] = future_ag
         # to get the params to re-compute reward
-        transitions['r'] = np.expand_dims(self.reward_func(transitions['ag_next'], transitions['g'], None), 1)
+        transitions['r'] = np.expand_dims(self.client.reward_func(transitions['ag_next'], transitions['g'], None), 1)
         transitions = {k: transitions[k].reshape(batch_size, *transitions[k].shape[1:]) for k in transitions.keys()}
 
         return transitions

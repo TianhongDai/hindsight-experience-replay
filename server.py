@@ -26,7 +26,7 @@ def manage_connection(conn):
     conn.send(bytes("done", 'utf-8'))
 
   while True:
-    data = conn.recv(1024)
+    data = conn.recv(4096*4)
     if len(data) >= 4:
       cmd = data[0:4].decode('utf-8')
       if (cmd == MAKE_ENV_CMD):
@@ -60,7 +60,8 @@ def manage_connection(conn):
         env.seed(env_seed)
         done_response()
       elif (cmd == COMPUTE_REWARD_CMD):
-        pickle_response(env.compute_reward)
+        arg1, arg2, arg3 = pickle.loads(data[4:])
+        pickle_response(env.compute_reward(arg1, arg2, arg3))
       else:
         print(f"Unrecognized command: {cmd}")
 
