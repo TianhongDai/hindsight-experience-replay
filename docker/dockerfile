@@ -11,10 +11,14 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update -y
 RUN apt-get upgrade -y
 
-# Useful tools. More will likely need to be added. libopenmpi-dev is required for mpi4py
-RUN apt-get install -y git man curl gdb libopenmpi-dev
+# libopenmpi-dev is required for mpi4py
+RUN apt-get install -y libopenmpi-dev
 
 # Repo requirements
-RUN pip3 install mpi4py
+RUN pip3 -vv install mpi4py
 # This takes ~30 mins. -vv makes it print more data so you know it still working
 RUN pip3 -vv install gym
+
+# Useful tools. More will likely need to be added.
+RUN apt-get install -y git man curl gdb openssh-client
+
