@@ -189,6 +189,12 @@ class ddpg_agent:
                             self.actor_network.state_dict()],
                            self.model_path + '/model.pt')
 
+        print("Training finished! Results:")
+        print("{} eval success rate is: {:.5f}".format(
+            self.args.env_name1, self._eval_agent(self.env1, self.env1_params)))
+        print("{} eval success rate is: {:.5f}".format(
+            self.args.env_name2, self._eval_agent(self.env2, self.env2_params)))
+
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):
         obs_norm = self.o_norm.normalize(obs)
