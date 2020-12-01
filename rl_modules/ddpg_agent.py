@@ -10,6 +10,7 @@ from mpi_utils.normalizer import normalizer
 from her_modules.her import her_sampler
 from train_mode import TrainMode
 from typing import Tuple
+import wandb
 
 """
 ddpg with HER (MPI-version)
@@ -26,6 +27,12 @@ class ddpg_agent:
         self.env2_params = env2_params
 
         self.train_mode = TrainMode(args.training_mode)
+
+        # store weights and biases API key if in args
+        if self.args.wandb_api_key is not None:
+            os.environ["WANDB_API_KEY"] = self.args.wandb_api_key
+        # if key is present set a flag to enable the functionality
+        self.use_wandb_log = os.environ.get("WANDB_API_KEY") is not None
 
         # create the network
         assert env1_params == env2_params  # TODO: make sure to check for equality
@@ -81,17 +88,17 @@ class ddpg_agent:
                 os.mkdir(self.args.save_dir)
 
             # path to save the model
-            self.model_path = os.path.join(self.args.save_dir, self.args.env_name1 + self.args.env_name2)
+            self.model_path = os.path.join(self.args.save_dir, self.args.env1_name + self.args.env2_name)
             if not os.path.exists(self.model_path):
                 os.mkdir(self.model_path)
 
     def get_env1_set(self):
         return self.env1, self.env1_params, self.buffer1, self.critic_network1, self.critic_target_network1, \
-            self.critic1_optim, self.her_module1, self.args.env_name1
+            self.critic1_optim, self.her_module1, self.args.env1_name
 
     def get_env2_set(self):
         return self.env2, self.env2_params, self.buffer2, self.critic_network2, self.critic_target_network2, \
-            self.critic2_optim, self.her_module2, self.args.env_name2
+            self.critic2_optim, self.her_module2, self.args.env2_name
 
     def get_env(self, curr_epoch: int) -> Tuple:
         progress_percent = curr_epoch / self.args.n_epochs
@@ -117,6 +124,15 @@ class ddpg_agent:
         train the network
 
         """
+        
+        # setup weights and biases
+        if self.use_wandb_log:
+            wandb.init(project="DDPG + HER Dual Fetch Model")
+            config = wandb.config
+            config.env1_name = self.args.env1_name
+            config.env2_name = self.args.env2_name
+            config.training_mode = self.train_mode.name
+            config.number_of_epochs = self.args.n_epochs
 
         # start to collect samples
         for epoch in range(self.args.n_epochs):
@@ -185,15 +201,27 @@ class ddpg_agent:
             if MPI.COMM_WORLD.Get_rank() == 0:
                 print('[{}] epoch is: {}, eval success rate is: {:.3f}, env name: {}'.format(
                     datetime.now(), epoch, success_rate, env_name))
+                if self.use_wandb_log:
+                    wandb.log({'Epoch': epoch, 'Success Rate': success_rate,
+                               'Environment': env_name})
                 torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std,
                             self.actor_network.state_dict()],
                            self.model_path + '/model.pt')
 
+        # ~~~~~ Evaluation ~~~~~~
         print("Training finished! Results:")
+
+        env1_eval = self._eval_agent(self.env1, self.env1_params)
         print("{} eval success rate is: {:.5f}".format(
-            self.args.env_name1, self._eval_agent(self.env1, self.env1_params)))
+            self.args.env1_name, env1_eval))
+
+        env2_eval = self._eval_agent(self.env2, self.env2_params)
         print("{} eval success rate is: {:.5f}".format(
-            self.args.env_name2, self._eval_agent(self.env2, self.env2_params)))
+            self.args.env2_name, env2_eval))
+
+        if self.use_wandb_log:
+            wandb.log({'{} Eval Success Rate'.format(self.args.env1_name): env1_eval,
+                       '{} Eval Success Rate'.format(self.args.env2_name): env2_eval})
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):

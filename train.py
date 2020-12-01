@@ -25,8 +25,8 @@ def get_env_params(env):
 
 def launch(args):
     # create the ddpg_agent
-    env1 = gym.make(args.env_name1)
-    env2 = gym.make(args.env_name2)
+    env1 = gym.make(args.env1_name)
+    env2 = gym.make(args.env2_name)
 
     # set random seeds for reproduce
     env1.seed(args.seed + MPI.COMM_WORLD.Get_rank())

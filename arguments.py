@@ -8,8 +8,8 @@ Here are the param for the training
 def get_args():
     parser = argparse.ArgumentParser()
     # the environment setting
-    parser.add_argument('--env-name1', type=str, default='FetchPickAndPlace-v1', help='the first environment name')
-    parser.add_argument('--env-name2', type=str, default='FetchPush-v1', help='the first environment name')
+    parser.add_argument('--env1-name', type=str, default='FetchPickAndPlace-v1', help='the first environment name')
+    parser.add_argument('--env2-name', type=str, default='FetchPush-v1', help='the first environment name')
     parser.add_argument('--training-mode', type=int, default=0,
                         help='0=FirstThenSecond, 1=SecondThenFirst, 2=Interlaced')
     parser.add_argument('--n-epochs', type=int, default=50, help='the number of epochs to train the agent')
@@ -37,6 +37,7 @@ def get_args():
     parser.add_argument('--demo-length', type=int, default=20, help='the demo length')
     parser.add_argument('--cuda', action='store_true', help='if use gpu do the acceleration')
     parser.add_argument('--num-rollouts-per-mpi', type=int, default=2, help='the rollouts per mpi')
+    parser.add_argument('--wandb-api-key', type=str, default=None, help='The weights and biases API key')
 
     args = parser.parse_args()
 
