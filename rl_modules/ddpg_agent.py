@@ -126,7 +126,7 @@ class ddpg_agent:
         """
         
         # setup weights and biases
-        if self.use_wandb_log:
+        if self.use_wandb_log and MPI.COMM_WORLD.Get_rank() == 0:
             wandb.init(project="DDPG + HER Dual Fetch Model")
             config = wandb.config
             config.env1_name = self.args.env1_name
@@ -209,19 +209,20 @@ class ddpg_agent:
                            self.model_path + '/model.pt')
 
         # ~~~~~ Evaluation ~~~~~~
-        print("Training finished! Results:")
+        if MPI.COMM_WORLD.Get_rank() == 0:
+            print("Training finished! Results:")
 
-        env1_eval = self._eval_agent(self.env1, self.env1_params)
-        print("{} eval success rate is: {:.5f}".format(
-            self.args.env1_name, env1_eval))
+            env1_eval = self._eval_agent(self.env1, self.env1_params)
+            print("{} eval success rate is: {:.5f}".format(
+                self.args.env1_name, env1_eval))
 
-        env2_eval = self._eval_agent(self.env2, self.env2_params)
-        print("{} eval success rate is: {:.5f}".format(
-            self.args.env2_name, env2_eval))
+            env2_eval = self._eval_agent(self.env2, self.env2_params)
+            print("{} eval success rate is: {:.5f}".format(
+                self.args.env2_name, env2_eval))
 
-        if self.use_wandb_log:
-            wandb.log({'{} Eval Success Rate'.format(self.args.env1_name): env1_eval,
-                       '{} Eval Success Rate'.format(self.args.env2_name): env2_eval})
+            if self.use_wandb_log:
+                wandb.log({'{} Eval Success Rate'.format(self.args.env1_name): env1_eval,
+                           '{} Eval Success Rate'.format(self.args.env2_name): env2_eval})
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):
