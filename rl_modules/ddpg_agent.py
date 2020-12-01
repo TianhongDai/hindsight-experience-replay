@@ -85,29 +85,32 @@ class ddpg_agent:
             if not os.path.exists(self.model_path):
                 os.mkdir(self.model_path)
 
+    def get_env1_set(self):
+        return self.env1, self.env1_params, self.buffer1, self.critic_network1, self.critic_target_network1, \
+            self.critic1_optim, self.her_module1, self.args.env_name1
+
+    def get_env2_set(self):
+        return self.env2, self.env2_params, self.buffer2, self.critic_network2, self.critic_target_network2, \
+            self.critic2_optim, self.her_module2, self.args.env_name2
+
     def get_env(self, curr_epoch: int) -> Tuple:
         progress_percent = curr_epoch / self.args.n_epochs
 
-        set1 = self.env1, self.env1_params, self.buffer1, self.critic_network1, self.critic_target_network1, \
-            self.critic1_optim, self.her_module1
-        set2 = self.env2, self.env2_params, self.buffer2, self.critic_network2, self.critic_target_network2, \
-            self.critic2_optim, self.her_module2
-
         if self.train_mode == TrainMode.FirstThenSecond:
             if progress_percent < 0.5:
-                return set1
+                return self.get_env1_set()
             else:
-                return set2
+                return self.get_env2_set()
         elif self.train_mode == TrainMode.SecondThenFirst:
             if progress_percent < 0.5:
-                return set2
+                return self.get_env2_set()
             else:
-                return set1
+                return self.get_env1_set()
         else:  # interlaced
             if curr_epoch % 2 == 0:
-                return set1
+                return self.get_env1_set()
             else:
-                return set2
+                return self.get_env2_set()
 
     def learn(self):
         """
@@ -118,7 +121,7 @@ class ddpg_agent:
         # start to collect samples
         for epoch in range(self.args.n_epochs):
             env, env_params, buffer, critic_network, critic_target_network, critic_optim, \
-                her_module = self.get_env(epoch)
+                her_module, env_name = self.get_env(epoch)
             for _ in range(self.args.n_cycles):
                 mb_obs, mb_ag, mb_g, mb_actions = [], [], [], []
                 for _ in range(self.args.num_rollouts_per_mpi):
@@ -180,7 +183,8 @@ class ddpg_agent:
             # start to do the evaluation
             success_rate = self._eval_agent(env, env_params)
             if MPI.COMM_WORLD.Get_rank() == 0:
-                print('[{}] epoch is: {}, eval success rate is: {:.3f}'.format(datetime.now(), epoch, success_rate))
+                print('[{}] epoch is: {}, eval success rate is: {:.3f}, env name: {}'.format(
+                    datetime.now(), epoch, success_rate, env_name))
                 torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std,
                             self.actor_network.state_dict()],
                            self.model_path + '/model.pt')
