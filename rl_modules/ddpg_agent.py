@@ -212,11 +212,11 @@ class ddpg_agent:
         if MPI.COMM_WORLD.Get_rank() == 0:
             print("Training finished! Results:")
 
-            env1_eval = self._eval_agent(self.env1, self.env1_params)
+            env1_eval = self._eval_agent(self.env1, self.env1_params, testing=True)
             print("{} eval success rate is: {:.5f}".format(
                 self.args.env1_name, env1_eval))
 
-            env2_eval = self._eval_agent(self.env2, self.env2_params)
+            env2_eval = self._eval_agent(self.env2, self.env2_params, testing=True)
             print("{} eval success rate is: {:.5f}".format(
                 self.args.env2_name, env2_eval))
 
@@ -360,7 +360,7 @@ class ddpg_agent:
         critic_optim.step()
 
     # do the evaluation
-    def _eval_agent(self, env, env_params):
+    def _eval_agent(self, env, env_params, testing=False):
         total_success_rate = []
         for _ in range(self.args.n_test_rollouts):
             per_success_rate = []
@@ -381,5 +381,7 @@ class ddpg_agent:
             total_success_rate.append(per_success_rate)
         total_success_rate = np.array(total_success_rate)
         local_success_rate = np.mean(total_success_rate[:, -1])
+        if testing:
+            return local_success_rate
         global_success_rate = MPI.COMM_WORLD.allreduce(local_success_rate, op=MPI.SUM)
         return global_success_rate / MPI.COMM_WORLD.Get_size()
