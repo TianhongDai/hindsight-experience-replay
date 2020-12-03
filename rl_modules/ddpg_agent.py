@@ -208,7 +208,7 @@ class ddpg_agent:
                             self.actor_network.state_dict()],
                            self.model_path + '/model.pt')
 
-        # ~~~~~ Evaluation ~~~~~~
+        # ~~~~~ Evaluation and Cloud Model Save ~~~~~~
         if MPI.COMM_WORLD.Get_rank() == 0:
             print("Training finished! Results:")
 
@@ -223,6 +223,8 @@ class ddpg_agent:
             if self.use_wandb_log:
                 wandb.log({'{} Eval Success Rate'.format(self.args.env1_name): env1_eval,
                            '{} Eval Success Rate'.format(self.args.env2_name): env2_eval})
+
+                wandb.save(os.path.join(self.model_path, 'model.pt'))
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):
