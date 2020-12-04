@@ -12,6 +12,9 @@ def get_args():
     parser.add_argument('--env2-name', type=str, default='FetchPush-v1', help='the first environment name')
     parser.add_argument('--training-mode', type=int, default=2,
                         help='0=FirstThenSecond, 1=SecondThenFirst, 2=Interlaced')
+    parser.add_argument('--train-baseline', dest='train_baseline', action='store_true')
+    parser.set_defaults(train_baseline=False)
+
     parser.add_argument('--n-epochs', type=int, default=50, help='the number of epochs to train the agent')
     parser.add_argument('--n-cycles', type=int, default=50, help='the times to collect samples per epoch')
     parser.add_argument('--n-batches', type=int, default=40, help='the times to update the network')

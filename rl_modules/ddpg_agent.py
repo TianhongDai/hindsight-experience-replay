@@ -28,6 +28,9 @@ class ddpg_agent:
         self.env2_params = env2_params
         self.env2_params['obs'] += 1
 
+        self.env1_id = 0.0
+        self.env2_id = 1.0
+
         self.train_mode = TrainMode(args.training_mode)
 
         # store weights and biases API key if in args
@@ -88,10 +91,10 @@ class ddpg_agent:
                 os.mkdir(self.model_path)
 
     def get_env1_set(self):
-        return self.env1, self.env1_params, self.buffer1, self.her_module1, self.args.env1_name, 0.0
+        return self.env1, self.env1_params, self.buffer1, self.her_module1, self.args.env1_name, self.env1_id
 
     def get_env2_set(self):
-        return self.env2, self.env2_params, self.buffer2, self.her_module2, self.args.env2_name, 1.0
+        return self.env2, self.env2_params, self.buffer2, self.her_module2, self.args.env2_name, self.env2_id
 
     def get_env(self, curr_epoch: int) -> Tuple:
         progress_percent = curr_epoch / self.args.n_epochs
@@ -111,6 +114,12 @@ class ddpg_agent:
                 return self.get_env1_set()
             else:
                 return self.get_env2_set()
+
+    def inject_obs(self, obs, env_id):
+        """Will inject the env_id to the observation if args.train_baseline is False. Otherwise will do nothing."""
+        if self.args.train_baseline:
+            return obs
+        return np.append(obs, env_id)
 
     def learn(self):
         """
@@ -140,7 +149,7 @@ class ddpg_agent:
                     # reset the environment
                     observation = env.reset()
                     obs = observation['observation']
-                    obs = np.append(obs, env_id)
+                    obs = self.inject_obs(obs, env_id)
                     ag = observation['achieved_goal']
                     g = observation['desired_goal']
 
@@ -154,7 +163,7 @@ class ddpg_agent:
                         # feed the actions into the environment
                         observation_new, _, _, info = env.step(action)
                         obs_new = observation_new['observation']
-                        obs_new = np.append(obs_new, env_id)
+                        obs_new = self.inject_obs(obs_new, env_id)
                         ag_new = observation_new['achieved_goal']
 
                         # append rollouts
@@ -206,11 +215,11 @@ class ddpg_agent:
         if MPI.COMM_WORLD.Get_rank() == 0:
             print("Training finished! Results:")
 
-            env1_eval = self._eval_agent(self.env1, self.env1_params, 0.0, testing=True)
+            env1_eval = self._eval_agent(self.env1, self.env1_params, self.env1_id, testing=True)
             print("{} eval success rate is: {:.5f}".format(
                 self.args.env1_name, env1_eval))
 
-            env2_eval = self._eval_agent(self.env2, self.env2_params, 1.0, testing=True)
+            env2_eval = self._eval_agent(self.env2, self.env2_params, self.env2_id, testing=True)
             print("{} eval success rate is: {:.5f}".format(
                 self.args.env2_name, env2_eval))
 
@@ -361,7 +370,7 @@ class ddpg_agent:
         for _ in range(self.args.n_test_rollouts):
             per_success_rate = []
             observation = env.reset()
-            obs = np.append(observation['observation'], env_id)
+            obs = self.inject_obs(observation['observation'], env_id)
             g = observation['desired_goal']
             for _ in range(env_params['max_timesteps']):
                 with torch.no_grad():
@@ -371,7 +380,7 @@ class ddpg_agent:
                     # convert the actions
                     actions = pi.detach().cpu().numpy().squeeze()
                 observation_new, _, _, info = env.step(actions)
-                obs = np.append(observation_new['observation'], env_id)
+                obs = self.inject_obs(observation_new['observation'], env_id)
                 g = observation_new['desired_goal']
                 per_success_rate.append(info['is_success'])
             total_success_rate.append(per_success_rate)
