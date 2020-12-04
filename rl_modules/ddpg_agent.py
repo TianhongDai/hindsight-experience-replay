@@ -136,7 +136,7 @@ class ddpg_agent:
             config.env2_name = self.args.env2_name
             config.training_mode = self.train_mode.name
             config.number_of_epochs = self.args.n_epochs
-            config.injects_observation = "yes" if self.args.train_baseline else "no"
+            config.injects_observation = "yes" if not self.args.train_baseline else "no"
 
         # start to collect samples
         for epoch in range(self.args.n_epochs):
