@@ -4,6 +4,7 @@ from arguments import get_args
 import gym
 import numpy as np
 
+
 # process the inputs
 def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     o_clip = np.clip(o, -args.clip_obs, args.clip_obs)
@@ -14,19 +15,18 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     inputs = torch.tensor(inputs, dtype=torch.float32)
     return inputs
 
-if __name__ == '__main__':
-    args = get_args()
+
+def demo_2_envs(env, args):
     # load the model param
-    model_path = args.save_dir + args.env_name + '/model.pt'
+    model_path = args.save_dir + args.env1_name + args.env2_name + '/model.pt'
     o_mean, o_std, g_mean, g_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
-    # create the environment
-    env = gym.make(args.env_name)
+
     # get the env param
     observation = env.reset()
     # get the environment params
-    env_params = {'obs': observation['observation'].shape[0], 
-                  'goal': observation['desired_goal'].shape[0], 
-                  'action': env.action_space.shape[0], 
+    env_params = {'obs': observation['observation'].shape[0],
+                  'goal': observation['desired_goal'].shape[0],
+                  'action': env.action_space.shape[0],
                   'action_max': env.action_space.high[0],
                   }
     # create the actor network
@@ -48,3 +48,15 @@ if __name__ == '__main__':
             observation_new, reward, _, info = env.step(action)
             obs = observation_new['observation']
         print('the episode is: {}, is success: {}'.format(i, info['is_success']))
+
+
+if __name__ == '__main__':
+    args = get_args()
+    # create the environment
+    env1 = gym.make(args.env1_name)
+    env2 = gym.make(args.env2_name)
+
+    print("Playing demo for {}".format(args.env1_name))
+    demo_2_envs(env1, args)
+    print("Playing demo for {}".format(args.env2_name))
+    demo_2_envs(env2, args)
