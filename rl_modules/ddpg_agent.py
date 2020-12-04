@@ -77,7 +77,7 @@ class ddpg_agent:
         self.buffer1 = replay_buffer(self.env1_params, self.args.buffer_size, self.her_module1.sample_her_transitions)
         self.buffer2 = replay_buffer(self.env2_params, self.args.buffer_size, self.her_module2.sample_her_transitions)
 
-        # create the normalizer TODO: See if we need two of these
+        # create the normalizer
         self.o_norm = normalizer(size=env1_params['obs'], default_clip_range=self.args.clip_range)
         self.g_norm = normalizer(size=env1_params['goal'], default_clip_range=self.args.clip_range)
 
@@ -211,7 +211,7 @@ class ddpg_agent:
             env1_eval = self._eval_agent(self.env1, self.env1_params, self.env1_id)
             env2_eval = self._eval_agent(self.env2, self.env2_params, self.env2_id)
             if MPI.COMM_WORLD.Get_rank() == 0:
-                print('[{}] epoch is: {}, Success Rates:  {}: {:.3f},  {}: {:.3f}'.format(
+                print('[{}] Epoch is: {}, Success Rates:  {}: {:.3f},  {}: {:.3f}'.format(
                     datetime.now(), epoch, self.args.env1_name, env1_eval, self.args.env2_name, env2_eval))
 
                 if self.use_wandb_log:
