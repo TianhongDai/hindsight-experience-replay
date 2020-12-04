@@ -104,7 +104,7 @@ class ddpg_agent:
     def get_env2_set(self):
         return self.env2, self.env2_params, self.buffer2, self.her_module2, self.args.env2_name, self.env2_id
 
-    def get_env(self, curr_epoch: int) -> Tuple:
+    def get_env(self, curr_epoch: int, curr_cycle: int) -> Tuple:
         progress_percent = curr_epoch / self.args.n_epochs
 
         if self.train_mode == TrainMode.FirstThenSecond:
@@ -117,8 +117,13 @@ class ddpg_agent:
                 return self.get_env2_set()
             else:
                 return self.get_env1_set()
-        else:  # interlaced
+        elif self.train_mode == TrainMode.EpochInterlaced:
             if curr_epoch % 2 == 0:
+                return self.get_env1_set()
+            else:
+                return self.get_env2_set()
+        else:
+            if curr_cycle % 2 == 0:
                 return self.get_env1_set()
             else:
                 return self.get_env2_set()
@@ -141,8 +146,8 @@ class ddpg_agent:
 
         # start to collect samples
         for epoch in range(self.args.n_epochs):
-            env, env_params, buffer, her_module, env_name, env_id = self.get_env(epoch)
-            for _ in range(self.args.n_cycles):
+            for cycle in range(self.args.n_cycles):
+                env, env_params, buffer, her_module, env_name, env_id = self.get_env(epoch, cycle)
                 mb_obs, mb_ag, mb_g, mb_actions = [], [], [], []
                 for _ in range(self.args.num_rollouts_per_mpi):
 
@@ -202,35 +207,28 @@ class ddpg_agent:
                 self._soft_update_target_network(self.actor_target_network, self.actor_network)
                 self._soft_update_target_network(self.critic_target_network, self.critic_network)
 
-            # start to do the evaluation
-            success_rate = self._eval_agent(env, env_params, env_id)
+            # evaluate the model
+            env1_eval = self._eval_agent(self.env1, self.env1_params, self.env1_id)
+            env2_eval = self._eval_agent(self.env2, self.env2_params, self.env2_id)
             if MPI.COMM_WORLD.Get_rank() == 0:
-                print('[{}] epoch is: {}, eval success rate is: {:.3f}, env name: {}'.format(
-                    datetime.now(), epoch, success_rate, env_name))
+                print('[{}] epoch is: {}, Success Rates:  {}: {:.3f},  {}: {:.3f}'.format(
+                    datetime.now(), epoch, self.args.env1_name, env1_eval, self.args.env2_name, env2_eval))
+
                 if self.use_wandb_log:
-                    wandb.log({'Epoch': epoch, 'Success Rate': success_rate,
-                               'Environment': env_name})
+                    wandb.log({'{} Success Rate'.format(self.args.env1_name): env1_eval, 'Epoch': epoch,
+                               '{} Success Rate'.format(self.args.env2_name): env2_eval})
+
                 torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std,
                             self.actor_network.state_dict()],
                            self.model_path + '/model.pt')
 
-        # ~~~~~ Evaluation and Cloud Model Save ~~~~~~
+        # ~~~~~ Cloud Model Save ~~~~~~
         if MPI.COMM_WORLD.Get_rank() == 0:
-            print("Training finished! Results:")
-
-            env1_eval = self._eval_agent(self.env1, self.env1_params, self.env1_id, testing=True)
-            print("{} eval success rate is: {:.5f}".format(
-                self.args.env1_name, env1_eval))
-
-            env2_eval = self._eval_agent(self.env2, self.env2_params, self.env2_id, testing=True)
-            print("{} eval success rate is: {:.5f}".format(
-                self.args.env2_name, env2_eval))
+            print("Training finished!")
 
             if self.use_wandb_log:
-                wandb.log({'{} Eval Success Rate'.format(self.args.env1_name): env1_eval,
-                           '{} Eval Success Rate'.format(self.args.env2_name): env2_eval})
-
                 wandb.save(os.path.join(self.model_path, 'model.pt'))
+                print("Trained model saved.")
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):

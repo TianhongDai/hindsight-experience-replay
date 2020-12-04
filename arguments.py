@@ -11,7 +11,7 @@ def get_args():
     parser.add_argument('--env1-name', type=str, default='FetchPickAndPlace-v1', help='the first environment name')
     parser.add_argument('--env2-name', type=str, default='FetchPush-v1', help='the first environment name')
     parser.add_argument('--training-mode', type=int, default=2,
-                        help='0=FirstThenSecond, 1=SecondThenFirst, 2=Interlaced')
+                        help='0=FirstThenSecond, 1=SecondThenFirst, 2=EpochInterlaced, 3=CycleInterlaced')
     parser.add_argument('--train-baseline', dest='train_baseline', action='store_true')
     parser.set_defaults(train_baseline=False)
 
