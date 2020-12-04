@@ -10,7 +10,7 @@ def get_args():
     # the environment setting
     parser.add_argument('--env1-name', type=str, default='FetchPickAndPlace-v1', help='the first environment name')
     parser.add_argument('--env2-name', type=str, default='FetchPush-v1', help='the first environment name')
-    parser.add_argument('--training-mode', type=int, default=0,
+    parser.add_argument('--training-mode', type=int, default=2,
                         help='0=FirstThenSecond, 1=SecondThenFirst, 2=Interlaced')
     parser.add_argument('--n-epochs', type=int, default=50, help='the number of epochs to train the agent')
     parser.add_argument('--n-cycles', type=int, default=50, help='the times to collect samples per epoch')

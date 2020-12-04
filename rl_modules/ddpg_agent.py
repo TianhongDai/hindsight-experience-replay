@@ -24,7 +24,9 @@ class ddpg_agent:
         self.env1 = env1
         self.env2 = env2
         self.env1_params = env1_params
+        self.env1_params['obs'] += 1
         self.env2_params = env2_params
+        self.env2_params['obs'] += 1
 
         self.train_mode = TrainMode(args.training_mode)
 
@@ -38,37 +40,30 @@ class ddpg_agent:
         assert env1_params == env2_params  # TODO: make sure to check for equality
         self.actor_network = actor(env1_params)
 
-        self.critic_network1 = critic(env1_params)
-        self.critic_network2 = critic(env2_params)
+        self.critic_network = critic(env1_params)
 
         # sync the networks across the cpus
         sync_networks(self.actor_network)
-        sync_networks(self.critic_network1)
-        sync_networks(self.critic_network2)
+        sync_networks(self.critic_network)
 
         # build up the target network
         self.actor_target_network = actor(env1_params)
-        self.critic_target_network1 = critic(env1_params)
-        self.critic_target_network2 = critic(env2_params)
+        self.critic_target_network = critic(env1_params)
 
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
-        self.critic_target_network1.load_state_dict(self.critic_network1.state_dict())
-        self.critic_target_network2.load_state_dict(self.critic_network2.state_dict())
+        self.critic_target_network.load_state_dict(self.critic_network.state_dict())
 
         # if use gpu
         if self.args.cuda:
             self.actor_network.cuda()
-            self.critic_network1.cuda()
-            self.critic_network2.cuda()
+            self.critic_network.cuda()
             self.actor_target_network.cuda()
-            self.critic_target_network1.cuda()
-            self.critic_target_network2.cuda()
+            self.critic_target_network.cuda()
 
         # create the optimizer
         self.actor_optim = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
-        self.critic1_optim = torch.optim.Adam(self.critic_network1.parameters(), lr=self.args.lr_critic)
-        self.critic2_optim = torch.optim.Adam(self.critic_network2.parameters(), lr=self.args.lr_critic)
+        self.critic_optim = torch.optim.Adam(self.critic_network.parameters(), lr=self.args.lr_critic)
 
         # her sampler
         self.her_module1 = her_sampler(self.args.replay_strategy, self.args.replay_k, self.env1.compute_reward)
@@ -93,12 +88,10 @@ class ddpg_agent:
                 os.mkdir(self.model_path)
 
     def get_env1_set(self):
-        return self.env1, self.env1_params, self.buffer1, self.critic_network1, self.critic_target_network1, \
-            self.critic1_optim, self.her_module1, self.args.env1_name
+        return self.env1, self.env1_params, self.buffer1, self.her_module1, self.args.env1_name, 0.0
 
     def get_env2_set(self):
-        return self.env2, self.env2_params, self.buffer2, self.critic_network2, self.critic_target_network2, \
-            self.critic2_optim, self.her_module2, self.args.env2_name
+        return self.env2, self.env2_params, self.buffer2, self.her_module2, self.args.env2_name, 1.0
 
     def get_env(self, curr_epoch: int) -> Tuple:
         progress_percent = curr_epoch / self.args.n_epochs
@@ -127,7 +120,7 @@ class ddpg_agent:
         
         # setup weights and biases
         if self.use_wandb_log and MPI.COMM_WORLD.Get_rank() == 0:
-            wandb.init(project="DDPG + HER Dual Fetch Model")
+            wandb.init(project="Input-Based DDPG + HER Dual Fetch Model")
             config = wandb.config
             config.env1_name = self.args.env1_name
             config.env2_name = self.args.env2_name
@@ -136,8 +129,7 @@ class ddpg_agent:
 
         # start to collect samples
         for epoch in range(self.args.n_epochs):
-            env, env_params, buffer, critic_network, critic_target_network, critic_optim, \
-                her_module, env_name = self.get_env(epoch)
+            env, env_params, buffer, her_module, env_name, env_id = self.get_env(epoch)
             for _ in range(self.args.n_cycles):
                 mb_obs, mb_ag, mb_g, mb_actions = [], [], [], []
                 for _ in range(self.args.num_rollouts_per_mpi):
@@ -148,6 +140,7 @@ class ddpg_agent:
                     # reset the environment
                     observation = env.reset()
                     obs = observation['observation']
+                    obs = np.append(obs, env_id)
                     ag = observation['achieved_goal']
                     g = observation['desired_goal']
 
@@ -161,6 +154,7 @@ class ddpg_agent:
                         # feed the actions into the environment
                         observation_new, _, _, info = env.step(action)
                         obs_new = observation_new['observation']
+                        obs_new = np.append(obs_new, env_id)
                         ag_new = observation_new['achieved_goal']
 
                         # append rollouts
@@ -190,14 +184,14 @@ class ddpg_agent:
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions], her_module)
                 for _ in range(self.args.n_batches):
                     # train the network
-                    self._update_network(env_params, buffer, critic_network, critic_target_network, critic_optim)
+                    self._update_network(env_params, buffer)
 
                 # soft update
                 self._soft_update_target_network(self.actor_target_network, self.actor_network)
-                self._soft_update_target_network(critic_target_network, critic_network)
+                self._soft_update_target_network(self.critic_target_network, self.critic_network)
 
             # start to do the evaluation
-            success_rate = self._eval_agent(env, env_params)
+            success_rate = self._eval_agent(env, env_params, env_id)
             if MPI.COMM_WORLD.Get_rank() == 0:
                 print('[{}] epoch is: {}, eval success rate is: {:.3f}, env name: {}'.format(
                     datetime.now(), epoch, success_rate, env_name))
@@ -212,11 +206,11 @@ class ddpg_agent:
         if MPI.COMM_WORLD.Get_rank() == 0:
             print("Training finished! Results:")
 
-            env1_eval = self._eval_agent(self.env1, self.env1_params, testing=True)
+            env1_eval = self._eval_agent(self.env1, self.env1_params, 0.0, testing=True)
             print("{} eval success rate is: {:.5f}".format(
                 self.args.env1_name, env1_eval))
 
-            env2_eval = self._eval_agent(self.env2, self.env2_params, testing=True)
+            env2_eval = self._eval_agent(self.env2, self.env2_params, 1.0, testing=True)
             print("{} eval success rate is: {:.5f}".format(
                 self.args.env2_name, env2_eval))
 
@@ -296,7 +290,7 @@ class ddpg_agent:
             target_param.data.copy_((1 - self.args.polyak) * param.data + self.args.polyak * target_param.data)
 
     # update the network
-    def _update_network(self, env_params, buffer, critic_network, critic_target_network, critic_optim):
+    def _update_network(self, env_params, buffer):
 
         # sample the episodes
         transitions = buffer.sample(self.args.batch_size)
@@ -331,7 +325,7 @@ class ddpg_agent:
 
             # concatenate the stuffs
             actions_next = self.actor_target_network(inputs_next_norm_tensor)
-            q_next_value = critic_target_network(inputs_next_norm_tensor, actions_next)
+            q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value
             target_q_value = target_q_value.detach()
@@ -341,12 +335,12 @@ class ddpg_agent:
             target_q_value = torch.clamp(target_q_value, -clip_return, 0)
 
         # the q loss
-        real_q_value = critic_network(inputs_norm_tensor, actions_tensor)
+        real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
 
         # the actor loss
         actions_real = self.actor_network(inputs_norm_tensor)
-        actor_loss = -critic_network(inputs_norm_tensor, actions_real).mean()
+        actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / env_params['action_max']).pow(2).mean()
 
         # start to update the network
@@ -356,18 +350,18 @@ class ddpg_agent:
         self.actor_optim.step()
 
         # update the critic_network
-        critic_optim.zero_grad()
+        self.critic_optim.zero_grad()
         critic_loss.backward()
-        sync_grads(critic_network)
-        critic_optim.step()
+        sync_grads(self.critic_network)
+        self.critic_optim.step()
 
     # do the evaluation
-    def _eval_agent(self, env, env_params, testing=False):
+    def _eval_agent(self, env, env_params, env_id, testing=False):
         total_success_rate = []
         for _ in range(self.args.n_test_rollouts):
             per_success_rate = []
             observation = env.reset()
-            obs = observation['observation']
+            obs = np.append(observation['observation'], env_id)
             g = observation['desired_goal']
             for _ in range(env_params['max_timesteps']):
                 with torch.no_grad():
@@ -377,7 +371,7 @@ class ddpg_agent:
                     # convert the actions
                     actions = pi.detach().cpu().numpy().squeeze()
                 observation_new, _, _, info = env.step(actions)
-                obs = observation_new['observation']
+                obs = np.append(observation_new['observation'], env_id)
                 g = observation_new['desired_goal']
                 per_success_rate.append(info['is_success'])
             total_success_rate.append(per_success_rate)
