@@ -19,6 +19,9 @@ ddpg with HER (MPI-version)
 
 
 class ddpg_agent:
+    env1_id = 0.0
+    env2_id = 1.0
+
     def __init__(self, args, env1, env2, env1_params, env2_params):
         self.args = args
         self.env1 = env1
@@ -28,9 +31,6 @@ class ddpg_agent:
         if not self.args.train_baseline:
             self.env2_params['obs'] += 1
             self.env1_params['obs'] += 1
-
-        self.env1_id = 0.0
-        self.env2_id = 1.0
 
         self.train_mode = TrainMode(args.training_mode)
 
@@ -91,6 +91,13 @@ class ddpg_agent:
             if not os.path.exists(self.model_path):
                 os.mkdir(self.model_path)
 
+    @staticmethod
+    def inject_obs(obs, env_id, args):
+        """Will inject the env_id to the observation if args.train_baseline is False. Otherwise will do nothing."""
+        if args.train_baseline:
+            return obs
+        return np.append(obs, env_id)
+
     def get_env1_set(self):
         return self.env1, self.env1_params, self.buffer1, self.her_module1, self.args.env1_name, self.env1_id
 
@@ -115,12 +122,6 @@ class ddpg_agent:
                 return self.get_env1_set()
             else:
                 return self.get_env2_set()
-
-    def inject_obs(self, obs, env_id):
-        """Will inject the env_id to the observation if args.train_baseline is False. Otherwise will do nothing."""
-        if self.args.train_baseline:
-            return obs
-        return np.append(obs, env_id)
 
     def learn(self):
         """
@@ -151,7 +152,7 @@ class ddpg_agent:
                     # reset the environment
                     observation = env.reset()
                     obs = observation['observation']
-                    obs = self.inject_obs(obs, env_id)
+                    obs = self.inject_obs(obs, env_id, self.args)
                     ag = observation['achieved_goal']
                     g = observation['desired_goal']
 
@@ -165,7 +166,7 @@ class ddpg_agent:
                         # feed the actions into the environment
                         observation_new, _, _, info = env.step(action)
                         obs_new = observation_new['observation']
-                        obs_new = self.inject_obs(obs_new, env_id)
+                        obs_new = self.inject_obs(obs_new, env_id, self.args)
                         ag_new = observation_new['achieved_goal']
 
                         # append rollouts
@@ -372,7 +373,7 @@ class ddpg_agent:
         for _ in range(self.args.n_test_rollouts):
             per_success_rate = []
             observation = env.reset()
-            obs = self.inject_obs(observation['observation'], env_id)
+            obs = self.inject_obs(observation['observation'], env_id, self.args)
             g = observation['desired_goal']
             for _ in range(env_params['max_timesteps']):
                 with torch.no_grad():
@@ -382,7 +383,7 @@ class ddpg_agent:
                     # convert the actions
                     actions = pi.detach().cpu().numpy().squeeze()
                 observation_new, _, _, info = env.step(actions)
-                obs = self.inject_obs(observation_new['observation'], env_id)
+                obs = self.inject_obs(observation_new['observation'], env_id, self.args)
                 g = observation_new['desired_goal']
                 per_success_rate.append(info['is_success'])
             total_success_rate.append(per_success_rate)

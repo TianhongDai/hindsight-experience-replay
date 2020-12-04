@@ -3,6 +3,7 @@ from rl_modules.models import actor
 from arguments import get_args
 import gym
 import numpy as np
+from rl_modules.ddpg_agent import ddpg_agent
 
 
 # process the inputs
@@ -16,7 +17,7 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 
-def demo_2_envs(env, args):
+def demo_2_envs(env, args, env_id):
     # load the model param
     model_path = args.save_dir + args.env1_name + args.env2_name + '/model.pt'
     o_mean, o_std, g_mean, g_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
@@ -24,7 +25,7 @@ def demo_2_envs(env, args):
     # get the env param
     observation = env.reset()
     # get the environment params
-    env_params = {'obs': observation['observation'].shape[0],
+    env_params = {'obs': ddpg_agent.inject_obs(observation['observation'], env_id, args).shape[0],
                   'goal': observation['desired_goal'].shape[0],
                   'action': env.action_space.shape[0],
                   'action_max': env.action_space.high[0],
@@ -36,7 +37,7 @@ def demo_2_envs(env, args):
     for i in range(args.demo_length):
         observation = env.reset()
         # start to do the demo
-        obs = observation['observation']
+        obs = ddpg_agent.inject_obs(observation['observation'], env_id, args)
         g = observation['desired_goal']
         for t in range(env._max_episode_steps):
             env.render()
@@ -46,7 +47,7 @@ def demo_2_envs(env, args):
             action = pi.detach().numpy().squeeze()
             # put actions into the environment
             observation_new, reward, _, info = env.step(action)
-            obs = observation_new['observation']
+            obs = ddpg_agent.inject_obs(observation_new['observation'], env_id, args)
         print('the episode is: {}, is success: {}'.format(i, info['is_success']))
 
 
@@ -57,6 +58,6 @@ if __name__ == '__main__':
     env2 = gym.make(args.env2_name)
 
     print("Playing demo for {}".format(args.env1_name))
-    demo_2_envs(env1, args)
+    demo_2_envs(env1, args, ddpg_agent.env1_id)
     print("Playing demo for {}".format(args.env2_name))
-    demo_2_envs(env2, args)
+    demo_2_envs(env2, args, ddpg_agent.env2_id)
