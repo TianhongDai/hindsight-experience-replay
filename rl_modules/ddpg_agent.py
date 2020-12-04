@@ -28,7 +28,7 @@ class ddpg_agent:
         self.env2 = env2
         self.env1_params = env1_params
         self.env2_params = env2_params
-        if not self.args.train_baseline:
+        if not self.args.dont_inject_observation:
             self.env2_params['obs'] += 1
             self.env1_params['obs'] += 1
 
@@ -68,6 +68,19 @@ class ddpg_agent:
         # create the optimizer
         self.actor_optim = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
         self.critic_optim = torch.optim.Adam(self.critic_network.parameters(), lr=self.args.lr_critic)
+        
+        # setup dual critic if applicable
+        self.use_two_critics = self.args.dual_critic
+        if self.use_two_critics:
+            self.critic_network2 = critic(env1_params)
+            sync_networks(self.critic_network2)
+            self.critic_target_network2 = critic(env1_params)
+            self.critic_target_network2.load_state_dict(self.critic_network2.state_dict())
+            self.critic2_optim = torch.optim.Adam(self.critic_network2.parameters(), lr=self.args.lr_critic)
+            
+            if self.args.cuda:
+                self.critic_network2.cuda()
+                self.critic_target_network2.cuda()
 
         # her sampler
         self.her_module1 = her_sampler(self.args.replay_strategy, self.args.replay_k, self.env1.compute_reward)
@@ -93,40 +106,52 @@ class ddpg_agent:
 
     @staticmethod
     def inject_obs(obs, env_id, args):
-        """Will inject the env_id to the observation if args.train_baseline is False. Otherwise will do nothing."""
-        if args.train_baseline:
+        """Will inject the env_id to the observation if args.dont_inject_observation is False. Otherwise will do nothing."""
+        if args.dont_inject_observation:
             return obs
         return np.append(obs, env_id)
 
-    def get_env1_set(self):
+    def _get_env1_set(self):
         return self.env1, self.env1_params, self.buffer1, self.her_module1, self.args.env1_name, self.env1_id
 
-    def get_env2_set(self):
+    def _get_env2_set(self):
         return self.env2, self.env2_params, self.buffer2, self.her_module2, self.args.env2_name, self.env2_id
+    
+    def _get_critic(self, env_id: float) -> Tuple:
+        set1 = (self.critic_network, self.critic_target_network, self.critic_optim)
+        
+        if self.use_two_critics:
+            set2 = (self.critic_network2, self.critic_target_network2, self.critic2_optim)
 
-    def get_env(self, curr_epoch: int, curr_cycle: int) -> Tuple:
+            if env_id == self.env1_id:
+                return set1
+            else:
+                return set2
+        return set1
+
+    def _get_env(self, curr_epoch: int, curr_cycle: int) -> Tuple:
         progress_percent = curr_epoch / self.args.n_epochs
 
         if self.train_mode == TrainMode.FirstThenSecond:
             if progress_percent < 0.5:
-                return self.get_env1_set()
+                return self._get_env1_set()
             else:
-                return self.get_env2_set()
+                return self._get_env2_set()
         elif self.train_mode == TrainMode.SecondThenFirst:
             if progress_percent < 0.5:
-                return self.get_env2_set()
+                return self._get_env2_set()
             else:
-                return self.get_env1_set()
+                return self._get_env1_set()
         elif self.train_mode == TrainMode.EpochInterlaced:
             if curr_epoch % 2 == 0:
-                return self.get_env1_set()
+                return self._get_env1_set()
             else:
-                return self.get_env2_set()
+                return self._get_env2_set()
         else:
             if curr_cycle % 2 == 0:
-                return self.get_env1_set()
+                return self._get_env1_set()
             else:
-                return self.get_env2_set()
+                return self._get_env2_set()
 
     def learn(self):
         """
@@ -142,12 +167,19 @@ class ddpg_agent:
             config.env2_name = self.args.env2_name
             config.training_mode = self.train_mode.name
             config.number_of_epochs = self.args.n_epochs
-            config.injects_observation = "yes" if not self.args.train_baseline else "no"
+            config.injects_observation = "yes" if not self.args.dont_inject_observation else "no"
+            config.dual_critic = "yes" if self.use_two_critics else "no"
+        
+        print("Training env {} and {} with mode {} using {} critic(s), {} injected observation".format(
+            self.args.env1_name, self.args.env2_name, self.train_mode.name, ("2" if self.use_two_critics else "1"),
+            ("without" if self.args.dont_inject_observation else "with")
+        ))
 
         # start to collect samples
         for epoch in range(self.args.n_epochs):
             for cycle in range(self.args.n_cycles):
-                env, env_params, buffer, her_module, env_name, env_id = self.get_env(epoch, cycle)
+                env, env_params, buffer, her_module, env_name, env_id = self._get_env(epoch, cycle)
+                critic_network, critic_target_network, critic_optim = self._get_critic(env_id)
                 mb_obs, mb_ag, mb_g, mb_actions = [], [], [], []
                 for _ in range(self.args.num_rollouts_per_mpi):
 
@@ -201,11 +233,11 @@ class ddpg_agent:
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions], her_module)
                 for _ in range(self.args.n_batches):
                     # train the network
-                    self._update_network(env_params, buffer)
+                    self._update_network(env_params, buffer, critic_network, critic_target_network, critic_optim)
 
                 # soft update
                 self._soft_update_target_network(self.actor_target_network, self.actor_network)
-                self._soft_update_target_network(self.critic_target_network, self.critic_network)
+                self._soft_update_target_network(critic_target_network, critic_network)
 
             # evaluate the model
             env1_eval = self._eval_agent(self.env1, self.env1_params, self.env1_id)
@@ -300,7 +332,7 @@ class ddpg_agent:
             target_param.data.copy_((1 - self.args.polyak) * param.data + self.args.polyak * target_param.data)
 
     # update the network
-    def _update_network(self, env_params, buffer):
+    def _update_network(self, env_params, buffer, critic_network, critic_target_network, critic_optim):
 
         # sample the episodes
         transitions = buffer.sample(self.args.batch_size)
@@ -335,7 +367,7 @@ class ddpg_agent:
 
             # concatenate the stuffs
             actions_next = self.actor_target_network(inputs_next_norm_tensor)
-            q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
+            q_next_value = critic_target_network(inputs_next_norm_tensor, actions_next)
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value
             target_q_value = target_q_value.detach()
@@ -345,12 +377,12 @@ class ddpg_agent:
             target_q_value = torch.clamp(target_q_value, -clip_return, 0)
 
         # the q loss
-        real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
+        real_q_value = critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
 
         # the actor loss
         actions_real = self.actor_network(inputs_norm_tensor)
-        actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
+        actor_loss = -critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / env_params['action_max']).pow(2).mean()
 
         # start to update the network
@@ -360,10 +392,10 @@ class ddpg_agent:
         self.actor_optim.step()
 
         # update the critic_network
-        self.critic_optim.zero_grad()
+        critic_optim.zero_grad()
         critic_loss.backward()
-        sync_grads(self.critic_network)
-        self.critic_optim.step()
+        sync_grads(critic_network)
+        critic_optim.step()
 
     # do the evaluation
     def _eval_agent(self, env, env_params, env_id, testing=False):
