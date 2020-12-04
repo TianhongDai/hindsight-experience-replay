@@ -169,11 +169,13 @@ class ddpg_agent:
             config.number_of_epochs = self.args.n_epochs
             config.injects_observation = "yes" if not self.args.dont_inject_observation else "no"
             config.dual_critic = "yes" if self.use_two_critics else "no"
-        
-        print("Training env {} and {} with mode {} using {} critic(s), {} injected observation".format(
-            self.args.env1_name, self.args.env2_name, self.train_mode.name, ("2" if self.use_two_critics else "1"),
-            ("without" if self.args.dont_inject_observation else "with")
-        ))
+
+        # print training mode
+        if MPI.COMM_WORLD.Get_rank() == 0:
+            print("Training env {} and {} with mode {} using {} critic(s), {} injected observation".format(
+                self.args.env1_name, self.args.env2_name, self.train_mode.name, ("2" if self.use_two_critics else "1"),
+                ("without" if self.args.dont_inject_observation else "with")
+            ))
 
         # start to collect samples
         for epoch in range(self.args.n_epochs):
