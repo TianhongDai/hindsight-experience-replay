@@ -24,9 +24,10 @@ class ddpg_agent:
         self.env1 = env1
         self.env2 = env2
         self.env1_params = env1_params
-        self.env1_params['obs'] += 1
         self.env2_params = env2_params
-        self.env2_params['obs'] += 1
+        if not self.args.train_baseline:
+            self.env2_params['obs'] += 1
+            self.env1_params['obs'] += 1
 
         self.env1_id = 0.0
         self.env2_id = 1.0
