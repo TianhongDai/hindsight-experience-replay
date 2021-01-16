@@ -49,10 +49,6 @@ It was plotted by using 5 different seeds, the solid line is the median value.
 ### Demo:
 **Tips**: when you watch the demo, you can press **TAB** to switch the camera in the mujoco.  
 
-FetchReach-v1| FetchPush-v1
------------------------|-----------------------|
-![](figures/reach.gif)| ![](figures/push.gif)
-
-FetchPickAndPlace-v1| FetchSlide-v1
------------------------|-----------------------|
-![](figures/pick.gif)| ![](figures/slide.gif)
+FetchPush-v1| FetchPickAndPlace-v1| FetchSlide-v1
+-----------------------|-----------------------|-----------------------|
+![](figures/push.gif)| ![](figures/pick.gif)| ![](figures/slide.gif)
