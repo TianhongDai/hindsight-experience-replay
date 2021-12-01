@@ -9,9 +9,20 @@ the input x in both networks should be [o, g], where o is the observation and g 
 
 # define the actor network
 class actor(nn.Module):
-    def __init__(self, env_params):
+    def __init__(self, env_params, cuda):
         super(actor, self).__init__()
-        self.max_action = env_params['action_max']
+        # not always correct, since action space could be asymmetric
+        # self.max_action = env_params['action_max']
+        action_space = env_params['action_space']
+        self.action_scale = torch.FloatTensor(
+            (action_space.high - action_space.low) / 2.
+        )
+        self.action_bias = torch.FloatTensor(
+            (action_space.high + action_space.low) / 2.
+        )
+        if cuda:
+            self.action_bias = self.action_bias.cuda()
+            self.action_scale = self.action_scale.cuda()
         self.fc1 = nn.Linear(env_params['obs'] + env_params['goal'], 256)
         self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, 256)
@@ -21,7 +32,7 @@ class actor(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        actions = self.max_action * torch.tanh(self.action_out(x))
+        actions = self.action_scale * torch.tanh(self.action_out(x)) + self.action_bias
 
         return actions
 

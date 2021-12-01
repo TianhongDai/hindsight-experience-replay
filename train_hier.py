@@ -6,14 +6,13 @@ from mpi4py import MPI
 from rl_modules.ddpg_agent import ddpg_agent
 import random
 import torch
-from envs import hand_block
-from envs.gym_robotics import *
+from envs.low_policy_env import LowPolicyEnv
 
 """
-train the agent, the MPI part code is copy from openai baselines(https://github.com/openai/baselines/blob/master/baselines/her)
+train the hierarchical agent, the low-level policy is integrated in the env 
 
 """
-def get_env_params(env):
+def get_env_params(env, c):
     obs = env.reset()
     # close the environment
     params = {'obs': obs['observation'].shape[0],
@@ -24,23 +23,17 @@ def get_env_params(env):
             }
     # print("action shape", params['action'])
     # print("goal shape", params['goal'])
-    params['max_timesteps'] = env._max_episode_steps
+    params['max_timesteps'] = env.env._max_episode_steps // c
+    print("episode length", params['max_timesteps'])
     return params
 
 def launch(args):
-    # create env
-    if args.pretrain:
-        env = hand_block.HandBlockCustomEnv(
-            horizontal_wrist_constraint=0.3,
-            vertical_wrist_constraint=1.0,
-            randomize_initial_position=True,
-            randomize_initial_rotation=True,
-            target_position='ignore',   # ignore or random
-            target_rotation='xyz',
-        )
-        print("use pretrain env !!!")
-    else:
-        env = gym.make(args.env_name)
+    # create hierarchical env
+    pretrain_env = gym.make('HandReach-v0')
+    model_path = 'saved_models/HandReach-v0/model.pt'
+    inner_env = gym.make(args.env_name)
+    env = LowPolicyEnv(inner_env, pretrain_env, args.c, model_path, args)
+
     # set random seeds for reproduce
     env.seed(args.seed + MPI.COMM_WORLD.Get_rank())
     random.seed(args.seed + MPI.COMM_WORLD.Get_rank())
@@ -49,9 +42,9 @@ def launch(args):
     if args.cuda:
         torch.cuda.manual_seed(args.seed + MPI.COMM_WORLD.Get_rank())
     # get the environment parameters
-    env_params = get_env_params(env)
-    # create the ddpg agent to interact with the environment 
-    ddpg_trainer = ddpg_agent(args, env, env_params, False)
+    env_params = get_env_params(env, args.c)
+    # create the ddpg agent to interact with the environment
+    ddpg_trainer = ddpg_agent(args, env, env_params, True)
     ddpg_trainer.learn()
 
 if __name__ == '__main__':

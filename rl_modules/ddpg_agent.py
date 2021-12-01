@@ -14,18 +14,18 @@ ddpg with HER (MPI-version)
 
 """
 class ddpg_agent:
-    def __init__(self, args, env, env_params):
+    def __init__(self, args, env, env_params, hier):
         self.args = args
         self.env = env
         self.env_params = env_params
         # create the network
-        self.actor_network = actor(env_params)
+        self.actor_network = actor(env_params, args.cuda)
         self.critic_network = critic(env_params)
         # sync the networks across the cpus
         sync_networks(self.actor_network)
         sync_networks(self.critic_network)
         # build up the target network
-        self.actor_target_network = actor(env_params)
+        self.actor_target_network = actor(env_params, args.cuda)
         self.critic_target_network = critic(env_params)
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
@@ -40,18 +40,22 @@ class ddpg_agent:
         self.actor_optim = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
         self.critic_optim = torch.optim.Adam(self.critic_network.parameters(), lr=self.args.lr_critic)
         # her sampler
+        # TODO: her module use reward function of the real env, but there is no compute_reward function in the HRL env wrapper
         self.her_module = her_sampler(self.args.replay_strategy, self.args.replay_k, self.env.compute_reward)
         # create the replay buffer
         self.buffer = replay_buffer(self.env_params, self.args.buffer_size, self.her_module.sample_her_transitions)
         # create the normalizer
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
         self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
+        self.hier = hier
         # create the dict for store the model
         if MPI.COMM_WORLD.Get_rank() == 0:
             if not os.path.exists(self.args.save_dir):
                 os.mkdir(self.args.save_dir)
             # path to save the model
-            self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
+            current_time = datetime.now().strftime('_%b%d_%H-%M-%S')
+            current_time = "{}_hier_{}".format(current_time, hier)
+            self.model_path = os.path.join(self.args.save_dir, self.args.env_name + current_time)
             if not os.path.exists(self.model_path):
                 os.mkdir(self.model_path)
 
@@ -113,7 +117,8 @@ class ddpg_agent:
             # start to do the evaluation
             success_rate = self._eval_agent()
             if MPI.COMM_WORLD.Get_rank() == 0:
-                print('[{}] epoch is: {}, eval success rate is: {:.3f}'.format(datetime.now(), epoch, success_rate))
+                print('[{}] hier: {}, epoch is: {}, eval success rate is: {:.3f}'.format(
+                    datetime.now(), self.hier, epoch, success_rate))
                 torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor_network.state_dict()], \
                             self.model_path + '/model.pt')
 

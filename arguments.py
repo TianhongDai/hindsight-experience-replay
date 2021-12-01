@@ -35,6 +35,10 @@ def get_args():
     parser.add_argument('--cuda', action='store_true', help='if use gpu do the acceleration')
     parser.add_argument('--num-rollouts-per-mpi', type=int, default=2, help='the rollouts per mpi')
 
+    # new params
+    parser.add_argument("--c", type=int, default=10, help="low-level policy length")
+    parser.add_argument("--pretrain", type=int, default=0, help="use pretrain env (hand block)")
+
     args = parser.parse_args()
 
     return args
