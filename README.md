@@ -58,10 +58,10 @@ CUDA_VISIBLE_DEVICES=1 mpirun -np 8 python -u train_hier.py --env-name='HandMani
 mpirun -np 8 python -u train.py --env-name='HandManipulatePen-v0' --n-epochs=200 2>&1 | tee logs/flat_HandPen.log
 
 
-mpirun -np 8 python -u train.py --env-name='HandManipulateBlockFull-v0' --n-epochs=200 2>&1 | tee logs/flat_HandFull.log
+mpirun -np 8 python -u train.py --env-name='HandManipulateBlockFull-v0' --n-epochs=200 2>&1 | tee logs/flat_HandFull1.log
 
 # target is qpos
-mpirun -np 8 python -u train.py --env-name='HandManipulateBlockPos-v0' --n-epochs=200 2>&1 | tee logs/flat_qpos.log
+mpirun -np 8 python -u train.py --env-name='HandManipulateBlockPos-v0' --n-epochs=200 2>&1 | tee logs/flat_qpos1.log
 
 
 ```
