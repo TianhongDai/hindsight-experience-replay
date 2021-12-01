@@ -56,7 +56,7 @@ class ddpg_agent:
             current_time = datetime.now().strftime('_%b%d_%H-%M-%S')
             current_time = "{}_hier_{}".format(current_time, hier)
             self.model_path = os.path.join(self.args.save_dir, self.args.env_name + current_time)
-            if not os.path.exists(self.model_path):
+            if not os.path.exists(self.model_path) and args.save:
                 os.mkdir(self.model_path)
 
     def learn(self):
@@ -117,10 +117,13 @@ class ddpg_agent:
             # start to do the evaluation
             success_rate = self._eval_agent()
             if MPI.COMM_WORLD.Get_rank() == 0:
-                print('[{}] hier: {}, epoch is: {}, eval success rate is: {:.3f}'.format(
-                    datetime.now(), self.hier, epoch, success_rate))
-                torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor_network.state_dict()], \
-                            self.model_path + '/model.pt')
+                print('[{}] env name: {}, hier: {}, epoch is: {}, eval success rate is: {:.3f}'.format(
+                    datetime.now(), self.args.env_name, self.hier, epoch, success_rate))
+                if self.args.save:
+                    torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor_network.state_dict()], \
+                                self.model_path + '/model.pt')
+                    if epoch % 10 == 0:
+                        print("model_path:", self.model_path)
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):

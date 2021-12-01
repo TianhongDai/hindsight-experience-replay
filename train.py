@@ -9,6 +9,7 @@ import torch
 from envs import hand_block
 from envs.gym_robotics import *
 
+
 """
 train the agent, the MPI part code is copy from openai baselines(https://github.com/openai/baselines/blob/master/baselines/her)
 
@@ -35,8 +36,8 @@ def launch(args):
             vertical_wrist_constraint=1.0,
             randomize_initial_position=True,
             randomize_initial_rotation=True,
-            target_position='ignore',   # ignore or random
-            target_rotation='xyz',
+            target_position='random',   # ignore or random
+            target_rotation='ignore',      # ignore or xyz
         )
         print("use pretrain env !!!")
     else:

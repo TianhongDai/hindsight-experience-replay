@@ -38,6 +38,8 @@ def get_args():
     # new params
     parser.add_argument("--c", type=int, default=10, help="low-level policy length")
     parser.add_argument("--pretrain", type=int, default=0, help="use pretrain env (hand block)")
+    parser.add_argument("--save", type=int, default=0, help="save models")
+    parser.add_argument("--model_path", type=str, default="", help='folder to load the model in the demo')
 
     args = parser.parse_args()
 

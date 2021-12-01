@@ -16,7 +16,7 @@ import numpy as np
 import gym
 import os
 from gym import spaces
-from gym.envs.robotics.hand.manipulate import ManipulateEnv
+from envs.gym_robotics.hand.manipulate import ManipulateEnv
 import mujoco_py
 
 MANIPULATE_BLOCK_XML = os.path.join('hand', 'manipulate_block.xml')
