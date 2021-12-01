@@ -66,7 +66,9 @@ CUDA_VISIBLE_DEVICES=-1 mpirun -np 16 python -u train.py --pretrain=1 --env-name
 
 ### Play Demo
 ```bash
-python demo.py --env-name=<environment name>
+python demo.py --env-name=HandManipulateBlockRotateParallel-v0
+
+python demo.py --env-name=HandManipulateBlockRotateXYZ-v0
 ```
 ### Download the Pre-trained Model
 Please download them from the [Google Driver](https://drive.google.com/open?id=1dNzIpIcL4x1im8dJcUyNO30m_lhzO9K4), then put the `saved_models` under the current folder.
