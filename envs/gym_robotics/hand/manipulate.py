@@ -233,12 +233,8 @@ class ManipulateEnv(hand_env.HandEnv, utils.EzPickle):
             axis = self.np_random.uniform(-1., 1., size=3)
             target_quat = quat_from_angle_and_axis(angle, axis)
         elif self.target_rotation in ['ignore', 'fixed']:
-<<<<<<< HEAD
-            target_quat = self.sim.data.get_joint_qpos('object:joint')[-4:]
-=======
             target_quat = self.sim.data.get_joint_qpos('object:joint')
             target_quat = target_quat[-4:]
->>>>>>> 97e468b86eb2733fb2d6fee4a1c313cfbd5aeb73
         else:
             raise error.Error('Unknown target_rotation option "{}".'.format(self.target_rotation))
         assert target_quat is not None
