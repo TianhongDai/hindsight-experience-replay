@@ -57,18 +57,20 @@ CUDA_VISIBLE_DEVICES=1 mpirun -np 8 python -u train_hier.py --env-name='HandMani
 # flat policy
 mpirun -np 8 python -u train.py --env-name='HandManipulatePen-v0' --n-epochs=200 2>&1 | tee logs/flat_HandPen.log
 
-mpirun -np 16 python -u train.py --env-name='HandManipulateBlockFull-v0' --n-epochs=200 --save=1 2>&1 | tee logs/flat_HandF16.log
 
-# pretrain low-level goal-conditioned policy
-CUDA_VISIBLE_DEVICES=-1 mpirun -np 16 python -u train.py --pretrain=1 --env-name='pretrain3' --n-epochs=200 2>&1 | tee logs/pretrain3_16.log
+mpirun -np 8 python -u train.py --env-name='HandManipulateBlockFull-v0' --n-epochs=200 2>&1 | tee logs/flat_HandFull1.log
+
+# target is qpos
+mpirun -np 8 python -u train.py --env-name='HandManipulateBlockPos-v0' --n-epochs=200 2>&1 | tee logs/flat_qpos1.log
+
 
 ```
 
 ### Play Demo
 ```bash
-python demo.py --env-name=HandManipulateBlockRotateParallel-v0
 
-python demo.py --env-name=HandManipulateBlockRotateXYZ-v0
+python demo.py --env-name=HandManipulateBlockPos-v0 --model_path="saved_models/HandManipulateBlockPos-v0_Dec01_16-36-35_hier_False"
+
 ```
 ### Download the Pre-trained Model
 Please download them from the [Google Driver](https://drive.google.com/open?id=1dNzIpIcL4x1im8dJcUyNO30m_lhzO9K4), then put the `saved_models` under the current folder.

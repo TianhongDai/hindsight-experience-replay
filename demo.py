@@ -4,6 +4,7 @@ from arguments import get_args
 import gym
 import numpy as np
 from datetime import datetime
+from envs.gym_robotics import *
 
 # process the inputs
 def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
@@ -18,7 +19,8 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
 if __name__ == '__main__':
     args = get_args()
     # load the model param
-    model_path = 'saved_models/HandManipulateBlockRotateXYZ-v0_Dec01_14-30-31_hier_False/model.pt'
+    model_path = args.model_path + "/model.pt"
+    # model_path = 'saved_models/HandManipulateBlockRotateZ-v0_Nov29_10-50-16_hier_False/model.pt'
     # model_path = args.save_dir + args.env_name + '/model.pt'
     o_mean, o_std, g_mean, g_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
     # create the environment
