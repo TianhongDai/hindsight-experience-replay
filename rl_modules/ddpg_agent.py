@@ -14,18 +14,18 @@ ddpg with HER (MPI-version)
 
 """
 class ddpg_agent:
-    def __init__(self, args, env, env_params):
+    def __init__(self, args, env, env_params, hier):
         self.args = args
         self.env = env
         self.env_params = env_params
         # create the network
-        self.actor_network = actor(env_params)
+        self.actor_network = actor(env_params, args.cuda)
         self.critic_network = critic(env_params)
         # sync the networks across the cpus
         sync_networks(self.actor_network)
         sync_networks(self.critic_network)
         # build up the target network
-        self.actor_target_network = actor(env_params)
+        self.actor_target_network = actor(env_params, args.cuda)
         self.critic_target_network = critic(env_params)
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
@@ -46,13 +46,16 @@ class ddpg_agent:
         # create the normalizer
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
         self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
+        self.hier = hier
         # create the dict for store the model
         if MPI.COMM_WORLD.Get_rank() == 0:
             if not os.path.exists(self.args.save_dir):
                 os.mkdir(self.args.save_dir)
             # path to save the model
-            self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
-            if not os.path.exists(self.model_path):
+            current_time = datetime.now().strftime('_%b%d_%H-%M-%S')
+            current_time = "{}_hier_{}".format(current_time, hier)
+            self.model_path = os.path.join(self.args.save_dir, self.args.env_name + current_time)
+            if not os.path.exists(self.model_path) and args.save:
                 os.mkdir(self.model_path)
 
     def learn(self):
@@ -113,9 +116,13 @@ class ddpg_agent:
             # start to do the evaluation
             success_rate = self._eval_agent()
             if MPI.COMM_WORLD.Get_rank() == 0:
-                print('[{}] epoch is: {}, eval success rate is: {:.3f}'.format(datetime.now(), epoch, success_rate))
-                torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor_network.state_dict()], \
-                            self.model_path + '/model.pt')
+                print('[{}] env name: {}, hier: {}, epoch is: {}, eval success rate is: {:.3f}'.format(
+                    datetime.now(), self.args.env_name, self.hier, epoch, success_rate))
+                if self.args.save:
+                    torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor_network.state_dict()], \
+                                self.model_path + '/model.pt')
+                    if epoch % 10 == 0:
+                        print("model_path:", self.model_path)
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):

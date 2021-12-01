@@ -3,6 +3,7 @@ from rl_modules.models import actor
 from arguments import get_args
 import gym
 import numpy as np
+from datetime import datetime
 
 # process the inputs
 def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
@@ -17,7 +18,8 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
 if __name__ == '__main__':
     args = get_args()
     # load the model param
-    model_path = args.save_dir + args.env_name + '/model.pt'
+    model_path = 'saved_models/HandManipulateBlockRotateZ-v0_Nov29_10-50-16_hier_False/model.pt'
+    # model_path = args.save_dir + args.env_name + '/model.pt'
     o_mean, o_std, g_mean, g_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
     # create the environment
     env = gym.make(args.env_name)
@@ -28,9 +30,10 @@ if __name__ == '__main__':
                   'goal': observation['desired_goal'].shape[0], 
                   'action': env.action_space.shape[0], 
                   'action_max': env.action_space.high[0],
+                  'action_space': env.action_space
                   }
     # create the actor network
-    actor_network = actor(env_params)
+    actor_network = actor(env_params, args.cuda)
     actor_network.load_state_dict(model)
     actor_network.eval()
     for i in range(args.demo_length):

@@ -35,6 +35,35 @@ mpirun -np 16 python -u train.py --env-name='FetchPickAndPlace-v1' 2>&1 | tee pi
 mpirun -np 8 python -u train.py --env-name='FetchSlide-v1' --n-epochs=200 2>&1 | tee slide.log
 ```
 
+5. Hand envs
+```bash
+mpirun -np 8 python -u train.py --env-name='HandReach-v0' --n-epochs=200 2>&1 | tee logs/HandReach70.log
+
+# train hierarchical policy
+mpirun -np 8 python -u train_hier.py --env-name='HandManipulatePen-v0' --n-epochs=200 2>&1 | tee logs/hier_HandPen.log
+
+mpirun -np 8 python -u train_hier.py --env-name='HandManipulatePenRotate-v0' --n-epochs=200 2>&1 | tee logs/hier_HandPenR.log
+
+# relatively easy env, do this first
+mpirun -np 8 python -u train_hier.py --env-name='HandManipulateBlockRotateZ-v0' --n-epochs=200 --c 5 2>&1 | tee logs/hier_HandBZ.log
+
+mpirun -np 8 python -u train_hier.py --env-name='HandManipulateBlockRotateParallel-v0' --n-epochs=200 2>&1 | tee logs/hier_HandBP.log
+
+mpirun -np 8 python -u train_hier.py --env-name='HandManipulateBlockRotateXYZ-v0' --n-epochs=200 2>&1 | tee logs/hier_HandBxyz.log
+
+# use gpu, not work yet
+CUDA_VISIBLE_DEVICES=1 mpirun -np 8 python -u train_hier.py --env-name='HandManipulatePenRotate-v0' --n-epochs=200 --cuda 2>&1 | tee logs/hier_HandPenR_cuda.log
+
+# flat policy
+mpirun -np 8 python -u train.py --env-name='HandManipulatePen-v0' --n-epochs=200 2>&1 | tee logs/flat_HandPen.log
+
+mpirun -np 16 python -u train.py --env-name='HandManipulateBlockFull-v0' --n-epochs=200 --save=1 2>&1 | tee logs/flat_HandF16.log
+
+# pretrain low-level goal-conditioned policy
+CUDA_VISIBLE_DEVICES=-1 mpirun -np 16 python -u train.py --pretrain=1 --env-name='pretrain3' --n-epochs=200 2>&1 | tee logs/pretrain3_16.log
+
+```
+
 ### Play Demo
 ```bash
 python demo.py --env-name=<environment name>
