@@ -4,6 +4,7 @@ from arguments import get_args
 import gym
 import numpy as np
 from datetime import datetime
+from envs.gym_robotics import *
 
 # process the inputs
 def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):

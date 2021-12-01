@@ -68,7 +68,7 @@ mpirun -np 8 python -u train.py --env-name='HandManipulateBlockPos-v0' --n-epoch
 
 ### Play Demo
 ```bash
-python demo.py --env-name=<environment name> --model_path="saved_models/HandManipulateBlockRotateZ-v0_Nov29_10-50-16_hier_False"
+python demo.py --env-name=HandManipulateBlockPos-v0 --model_path="saved_models/HandManipulateBlockPos-v0_Dec01_16-36-35_hier_False"
 ```
 ### Download the Pre-trained Model
 Please download them from the [Google Driver](https://drive.google.com/open?id=1dNzIpIcL4x1im8dJcUyNO30m_lhzO9K4), then put the `saved_models` under the current folder.
