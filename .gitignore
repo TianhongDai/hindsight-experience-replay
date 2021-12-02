@@ -25,7 +25,7 @@ wheels/
 *.egg
 MANIFEST
 # put running script in this file
-README.md
+*.md
 .idea
 
 # PyInstaller
@@ -49,6 +49,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+tb
 
 # Translations
 *.mo

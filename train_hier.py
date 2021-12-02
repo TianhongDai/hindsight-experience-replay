@@ -30,7 +30,7 @@ def get_env_params(env, c):
 def launch(args):
     # create hierarchical env
     pretrain_env = gym.make('HandReach-v0')
-    model_path = 'saved_models/HandReach-v0/model.pt'
+    model_path = 'saved_models/Success_HandReach-v0/model.pt'
     inner_env = gym.make(args.env_name)
     env = LowPolicyEnv(inner_env, pretrain_env, args.c, model_path, args)
 

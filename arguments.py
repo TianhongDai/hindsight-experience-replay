@@ -9,7 +9,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     # the environment setting
     parser.add_argument('--env-name', type=str, default='FetchReach-v1', help='the environment name')
-    parser.add_argument('--n-epochs', type=int, default=50, help='the number of epochs to train the agent')
+    parser.add_argument('--n-epochs', type=int, default=200, help='the number of epochs to train the agent')
     parser.add_argument('--n-cycles', type=int, default=50, help='the times to collect samples per epoch')
     parser.add_argument('--n-batches', type=int, default=40, help='the times to update the network')
     parser.add_argument('--save-interval', type=int, default=5, help='the interval that save the trajectory')
@@ -37,9 +37,9 @@ def get_args():
 
     # new params
     parser.add_argument("--c", type=int, default=10, help="low-level policy length")
-    parser.add_argument("--pretrain", type=int, default=0, help="use pretrain env (hand block)")
+    parser.add_argument("--pretrain", type=int, default=0, help="never use this !!!")
     parser.add_argument("--save", type=int, default=1, help="save models")
-    parser.add_argument("--model_path", type=str, default="", help='folder to load the model in the demo')
+    parser.add_argument("--model_path", type=str, default="", help='folder to load the model in demo.py')
 
     args = parser.parse_args()
 

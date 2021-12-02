@@ -273,12 +273,14 @@ class ManipulateEnv(hand_env.HandEnv, utils.EzPickle):
 
 
 class HandBlockEnv(ManipulateEnv):
-    def __init__(self, target_position='random', target_rotation='xyz', reward_type='sparse'):
+    def __init__(self, target_position='random', target_rotation='xyz', reward_type='sparse', n_substeps=20):
         super(HandBlockEnv, self).__init__(
             model_path=MANIPULATE_BLOCK_XML, target_position=target_position,
             target_rotation=target_rotation,
             target_position_range=np.array([(-0.04, 0.04), (-0.06, 0.02), (0.0, 0.06)]),
-            reward_type=reward_type)
+            reward_type=reward_type,
+            n_substeps=n_substeps,
+        )
 
 
 class HandEggEnv(ManipulateEnv):

@@ -8,6 +8,7 @@ from rl_modules.replay_buffer import replay_buffer
 from rl_modules.models import actor, critic
 from mpi_utils.normalizer import normalizer
 from her_modules.her import her_sampler
+from tensorboardX import SummaryWriter
 
 """
 ddpg with HER (MPI-version)
@@ -58,6 +59,9 @@ class ddpg_agent:
             self.model_path = os.path.join(self.args.save_dir, self.args.env_name + current_time)
             if not os.path.exists(self.model_path) and args.save:
                 os.mkdir(self.model_path)
+                # define tensorboard writer
+                log_dir = self.model_path +'/tb'
+                self.writer = SummaryWriter(log_dir)
 
     def learn(self):
         """
@@ -124,6 +128,8 @@ class ddpg_agent:
                                 self.model_path + '/model.pt')
                     if epoch % 10 == 0:
                         print("model_path:", self.model_path)
+                    # write success rates to tb
+                    self.writer.add_scalar('eval_success', success_rate, epoch)
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):

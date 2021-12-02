@@ -106,7 +106,15 @@ class LowPolicyEnv(gym.Wrapper):
             if done:
                 done_final = True
                 break
+        # print("high level rewards:", sum_rewards)
         return next_obs, sum_rewards, done_final, info
+
+    # when not reaching goal, high-level reward should be -c, not -1 in the base class
+    def compute_reward(self, achieved_goal, desired_goal, info):
+        success = self.env.env._is_success(achieved_goal, desired_goal).astype(np.float32)
+        # print("compute relabel reward in hierarchical wrapper !!!")
+        return (success - 1.) * self.c
+
 
 
 if __name__ == '__main__':
