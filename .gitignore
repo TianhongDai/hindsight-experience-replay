@@ -25,7 +25,6 @@ wheels/
 *.egg
 MANIFEST
 # put running script in this file
-*.md
 .idea
 
 # PyInstaller

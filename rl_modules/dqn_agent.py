@@ -107,7 +107,7 @@ class dqn_agent:
             if epoch > 2 * eval_interval:
                 # update with 10 batches
                 for n_batch in range(self.env_params['max_timesteps']):
-                    self._update_network()
+                    self._update_network(n_batch, epoch)
                 # hard update the network every 10 episodes
                 if epoch % 10 == 0:
                     # hard update the network
@@ -161,7 +161,7 @@ class dqn_agent:
             target_param.data.copy_(param.data)
 
     # update the network
-    def _update_network(self):
+    def _update_network(self, n_batch, epoch):
         # sample the episodes
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
@@ -213,6 +213,9 @@ class dqn_agent:
         self.q_optim.zero_grad()
         td_loss.backward()
         self.q_optim.step()
+
+        if self.args.save and n_batch == 0:
+            self.writer.add_scalar('td_loss', td_loss, epoch)
 
     def _eval_agent(self, policy=None):
         if policy is None:
