@@ -29,11 +29,11 @@ register(
     )
 
 register(
-        id='HandManipulateBlockPosEp200Sim10-v0',
+        id='HandManipulateBlockPosEp80Sim25-v0',
         entry_point='envs.gym_robotics.hand.manipulate:HandBlockEnv',
         kwargs=_merge({'target_position': 'random', 'target_rotation': 'ignore',
-                       'n_substeps': 10}, kwargs),
-        max_episode_steps=200,
+                       'n_substeps': 25}, kwargs),
+        max_episode_steps=80,
     )
 
 register(
@@ -55,21 +55,21 @@ register(
 
 
 register(
-        id='HandManipulateBlockEp200Sim10-v0',
+        id='HandManipulateBlockEp400Sim25-v0',
         entry_point='envs.gym_robotics.hand.manipulate:HandBlockEnv',
         kwargs=_merge({'target_position': 'random', 'target_rotation': 'xyz',
-                       'n_substeps': 10}, kwargs),
-        max_episode_steps=200,
+                       'n_substeps': 25}, kwargs),
+        max_episode_steps=400,
     )
 
 
 # rotation xyz
 register(
-        id='HandManipulateBlockRotateXYZEp400Sim5-v0',
+        id='HandManipulateBlockRotateXYZEp80Sim25-v0',
         entry_point='envs.gym_robotics.hand.manipulate:HandBlockEnv',
         kwargs=_merge({'target_position': 'ignore', 'target_rotation': 'xyz',
-                       'n_substeps': 5}, kwargs),
-        max_episode_steps=400,
+                       'n_substeps': 25}, kwargs),
+        max_episode_steps=80,
     )
 
 register(

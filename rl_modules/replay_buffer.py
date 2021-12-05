@@ -19,6 +19,8 @@ class replay_buffer:
                         'ag': np.empty([self.size, self.T + 1, self.env_params['goal']]),
                         'g': np.empty([self.size, self.T, self.env_params['goal']]),
                         'actions': np.empty([self.size, self.T, self.env_params['action']]),
+                        'r': np.empty([self.size, self.T, 1]),  # put reward in replay buffer
+                        'done': np.zeros([self.size, self.T, 1])  # put done in replay buffer
                         }
         # thread lock
         self.lock = threading.Lock()
@@ -34,6 +36,21 @@ class replay_buffer:
             self.buffers['ag'][idxs] = mb_ag
             self.buffers['g'][idxs] = mb_g
             self.buffers['actions'][idxs] = mb_actions
+            self.n_transitions_stored += self.T * batch_size
+
+    # store the episode
+    def store_episode_r(self, episode_batch):
+        mb_obs, mb_ag, mb_g, mb_actions, mb_r, done = episode_batch
+        batch_size = mb_obs.shape[0]
+        with self.lock:
+            idxs = self._get_storage_idx(inc=batch_size)
+            # store the informations
+            self.buffers['obs'][idxs] = mb_obs
+            self.buffers['ag'][idxs] = mb_ag
+            self.buffers['g'][idxs] = mb_g
+            self.buffers['actions'][idxs] = mb_actions
+            self.buffers['r'][idxs] = mb_r
+            self.buffers['done'][idxs] = done
             self.n_transitions_stored += self.T * batch_size
     
     # sample the data from the replay buffer

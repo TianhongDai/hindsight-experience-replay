@@ -5,6 +5,8 @@ from rl_modules.models import actor
 from arguments import get_args
 import time
 from envs.gym_robotics import *
+import sys
+sys.path.append('../')
 
 
 # FINGERTIP_SITE_NAMES = [
@@ -38,11 +40,15 @@ class MultiLevelEnv(gym.Wrapper):
                       'action_space': env.action_space,
                       }
         # create the actor network
-        self.actor_network_pos = actor(env_params, args.cuda)
+        if args.device is not 'cpu':
+            cuda = True
+        else:
+            cuda = False
+        self.actor_network_pos = actor(env_params, cuda)
         self.actor_network_pos.load_state_dict(model)
-        self.actor_network_rot = actor(env_params, args.cuda)
+        self.actor_network_rot = actor(env_params, cuda)
         self.actor_network_rot.load_state_dict(model1)
-        if args.cuda:
+        if cuda:
             self.actor_network_pos.cuda()
             self.actor_network_rot.cuda()
         self.actor_network_pos.eval()
@@ -59,6 +65,7 @@ class MultiLevelEnv(gym.Wrapper):
         ret = self.env.reset(**kwargs)
         self.last_obs = ret
         self.init_obj_state = ret['achieved_goal']
+        self.t = 0
         return ret
 
     # process the inputs
@@ -81,7 +88,7 @@ class MultiLevelEnv(gym.Wrapper):
         # The ignored goal dims are set as the current object states, match the training distribution?
         # related to the initial object state distribution in the pretrain env?
         if hi_action == 0:
-            # TODO: these two implementations have similar performance on random pi_h
+            # TODO: these two implementations have similar performance on random pi_h, maybe need better pi_l
             goal = np.concatenate((desired_goal[:3], achieved_goal[3:]))
             # goal = np.concatenate((desired_goal[:3], self.init_obj_state[3:]))
             o_mean, o_std, g_mean, g_std = self.o_mean, self.o_std, self.g_mean, self.g_std
@@ -96,6 +103,7 @@ class MultiLevelEnv(gym.Wrapper):
             assert False
 
         success = 0.
+        self.t += 1
 
         for i in range(self.c):
             cp_obs = self.last_obs
@@ -116,21 +124,33 @@ class MultiLevelEnv(gym.Wrapper):
             # # render
             # self.env.render()
 
-            # record success inside c steps
+            # record success inside c steps, only if success, done_final is True
             if info['is_success']:
                 success = 1.0
+                done_final = True
 
             self.last_obs = next_obs
             sum_rewards += reward
-            if done:
-                done_final = True
+
+            # if reach subgoal, return control, take high-level action
+            if (hi_action == 0 and d_pos < self.env.env.distance_threshold) or \
+                    (hi_action == 1 and d_rot < self.env.env.rotation_threshold):
+                # done_final = (done or bool(success))
                 break
-        # print("high level rewards:", sum_rewards)
+
+            # if reach env goal, return control
+            if done or success:
+                # done_final = True
+                break
+
+        # # reach max steps, not set done as True
+        # if self.t == self.env._max_episode_steps // self.c:
+        #     done_final = True
         info["sum_d"] = sum_d
         info['is_success'] = success
         return next_obs, sum_rewards, done_final, info
 
-    # when not reaching goal, high-level reward should be -c, not -1 in the base class
+    # still problematic, high-level reward is in [-c, 0], conditioned on whether reached the subgoal in c steps
     def compute_reward(self, achieved_goal, desired_goal, info):
         success = self.env.env._is_success(achieved_goal, desired_goal).astype(np.float32)
         # print("compute relabel reward in hierarchical wrapper !!!")
@@ -139,11 +159,13 @@ class MultiLevelEnv(gym.Wrapper):
 
 if __name__ == '__main__':
 
-    env = gym.make('HandManipulateBlock500-v0')
+    args = get_args()
+
+    env = gym.make(args.env_name)
     pretrain_env = gym.make('HandManipulateBlockRotateZ-v0')
     pos_model = '../saved_models/Success_HandPos_flat/model.pt'
     rot_model = '../saved_models/Success_HandManipulateBlockRotateXYZ-v0_hier_False/model.pt'
-    args = get_args()
+    # args = get_args()
     low_policy_env = MultiLevelEnv(env,
                  pretrain_env,  # the env to train low-level policy
                  pos_model,
@@ -166,13 +188,9 @@ if __name__ == '__main__':
             sum_d += info['sum_d']
             if info['is_success']:
                 success += 1
-                distance_list.append(sum_d)
-                print("success:", info["is_success"])
                 break
-            if done:
-                distance_list.append(sum_d)
-                print("success:", info['is_success'])
-                break
+        distance_list.append(sum_d)
+        # print("success:", done)
 
     print('mean cumulative distance', np.mean(distance_list))
     print("success rate", success / args.demo_length)

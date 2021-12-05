@@ -53,3 +53,20 @@ class critic(nn.Module):
         q_value = self.q_out(x)
 
         return q_value
+
+class Qnet(nn.Module):
+    def __init__(self, env_params):
+        super(Qnet, self).__init__()
+        self.fc1 = nn.Linear(env_params['obs'] + env_params['goal'], 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 256)
+        self.q_out = nn.Linear(256, env_params['n_action'])
+
+    # x is obs concat goal
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        q_value = self.q_out(x)
+
+        return q_value
