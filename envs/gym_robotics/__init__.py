@@ -80,5 +80,20 @@ register(
         max_episode_steps=50,
     )
 
+# rotate xyz with fixed pos
+register(
+        id='HandBlockFixedPosRotateXYZ-v0',
+        entry_point='envs.gym_robotics.hand.manipulate:HandBlockEnv',
+        kwargs=_merge({'target_position': 'fixed', 'target_rotation': 'xyz'}, kwargs),
+        max_episode_steps=100,
+    )
+
+# random pos with fixed rotation
+register(
+        id='HandBlockFixedRotationPos-v0',
+        entry_point='envs.gym_robotics.hand.manipulate:HandBlockEnv',
+        kwargs=_merge({'target_position': 'random', 'target_rotation': 'fixed'}, kwargs),
+        max_episode_steps=100,
+    )
 
 

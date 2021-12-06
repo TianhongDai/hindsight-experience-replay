@@ -56,6 +56,7 @@ def launch(args):
     ddpg_trainer.learn()
 
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3,4'  # cuda id
     # take the configuration for the HER
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
