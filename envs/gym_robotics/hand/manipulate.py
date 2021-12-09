@@ -179,7 +179,14 @@ class ManipulateEnv(hand_env.HandEnv, utils.EzPickle):
         # Randomize initial position.
         if self.randomize_initial_position:
             if self.target_position != 'fixed':
-                initial_pos += self.np_random.normal(size=3, scale=0.005)
+                # initial_pos += self.np_random.normal(size=3, scale=0.05) # in this way the first dim of initial pos varies from 1.004 to 1.014
+                # ---set initial_pos just as 'random' target pos:
+                # in this way we get similar results. however the target_goal could reach 0.8. becaucse func 'is_on_palm()' is used
+                # the init_obj_pos may be changed however the initial palm is fixed.
+                assert self.target_position_range.shape == (3, 2)
+                offset = self.np_random.uniform(self.target_position_range[:, 0], self.target_position_range[:, 1])
+                assert offset.shape == (3,)
+                initial_pos = self.sim.data.get_joint_qpos('object:joint')[:3] + offset
 
         initial_quat /= np.linalg.norm(initial_quat)
         initial_qpos = np.concatenate([initial_pos, initial_quat])
@@ -204,12 +211,12 @@ class ManipulateEnv(hand_env.HandEnv, utils.EzPickle):
     def _sample_goal(self):
         # Select a goal for the object position.
         target_pos = None
-        if self.target_position == 'random':
+        if self.target_position in ['random', 'ignore']:
             assert self.target_position_range.shape == (3, 2)
-            offset = self.np_random.uniform(self.target_position_range[:, 0], self.target_position_range[:, 1])
+            offset = self.np_random.uniform(self.target_position_range[:, 0], self.target_position_range[:, 1]) # target_position_range=np.array([(-0.04, 0.04), (-0.06, 0.02), (0.0, 0.06)]),
             assert offset.shape == (3,)
             target_pos = self.sim.data.get_joint_qpos('object:joint')[:3] + offset
-        elif self.target_position in ['ignore', 'fixed']:
+        elif self.target_position == 'fixed':
             target_pos = self.sim.data.get_joint_qpos('object:joint')[:3]
         else:
             raise error.Error('Unknown target_position option "{}".'.format(self.target_position))
@@ -228,11 +235,11 @@ class ManipulateEnv(hand_env.HandEnv, utils.EzPickle):
             target_quat = quat_from_angle_and_axis(angle, axis)
             parallel_quat = self.parallel_quats[self.np_random.randint(len(self.parallel_quats))]
             target_quat = rotations.quat_mul(target_quat, parallel_quat)
-        elif self.target_rotation == 'xyz':
+        elif self.target_rotation in ['xyz','ignore']:
             angle = self.np_random.uniform(-np.pi, np.pi)
             axis = self.np_random.uniform(-1., 1., size=3)
             target_quat = quat_from_angle_and_axis(angle, axis)
-        elif self.target_rotation in ['ignore', 'fixed']:
+        elif self.target_rotation == 'fixed':
             target_quat = self.sim.data.get_joint_qpos('object:joint')
             target_quat = target_quat[-4:]
         else:
